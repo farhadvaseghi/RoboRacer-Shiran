@@ -7,3 +7,26 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# ROS build artifacts
+build/
+install/
+log/
+
+# bags / recorded data
+*.bag
+*.bag.active
+*.db3
+*.mcap
+
+# ML model artifacts
+*.onnx
+*.pt
+*.pth
+*.h5
+*.pkl
+
+# Python
+__pycache__/
+*.pyc
+.venv/
