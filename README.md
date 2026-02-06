@@ -70,3 +70,7 @@ Each module is developed independently and integrated into a full-stack autonomo
 - Autonomous driving algorithms
 
 ## 📂 Repository Structure
+
+## System Architecture
+
+\![System Architecture](assets/system_architecture.png)
