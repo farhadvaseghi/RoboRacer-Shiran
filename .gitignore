@@ -1,0 +1,12 @@
+# ROS2 / colcon build artifacts
+build/
+install/
+log/
+
+# Common editor/system artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

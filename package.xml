@@ -1,43 +1,32 @@
 <?xml version="1.0"?>
-<package>
+<package format="3">
   <name>f1tenth_simulator</name>
-  <version>0.0.1</version>
-  <description>A simulator of the F1TENTH racecar.</description>
+  <version>0.0.2</version>
+  <description>A lightweight 2D simulator of the UPenn F1TENTH Racecar.</description>
 
   <maintainer email="billyzheng.bz@gmail.com">Hongrui Zheng</maintainer>
   <maintainer email="jauckley@seas.upenn.edu">Joe Auckley</maintainer>
-  <!-- Thank you: https://github.com/mit-racecar/racecar_simulator -->
-
   <license>MIT</license>
-  <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>tf2</build_depend>
-  <build_depend>tf2_ros</build_depend>
-  <build_depend>tf2_geometry_msgs</build_depend>
-  <build_depend>ackermann_msgs</build_depend>
-  <build_depend>nav_msgs</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>interactive_markers</build_depend>
-  <build_depend>visualization_msgs</build_depend>
-  <build_depend>cv_bridge</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>image_transport</build_depend>
-  <build_depend>message_generation</build_depend>
-  <run_depend>roscpp</run_depend>
-  <run_depend>tf2</run_depend>
-  <run_depend>tf2_ros</run_depend>
-  <run_depend>tf2_geometry_msgs</run_depend>
-  <run_depend>ackermann_msgs</run_depend>
-  <run_depend>nav_msgs</run_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <run_depend>geometry_msgs</run_depend>
-  <run_depend>joy</run_depend>
-  <run_depend>map_server</run_depend>
-  <run_depend>interactive_markers</run_depend>
-  <run_depend>visualization_msgs</run_depend>
-  <run_depend>cv_bridge</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>image_transport</run_depend>
-  <run_depend>message_runtime</run_depend>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>ackermann_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>joy</depend>
+  <depend>nav2_map_server</depend>
+  <depend>robot_state_publisher</depend>
+  <depend>rviz2</depend>
+  <depend>xacro</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>

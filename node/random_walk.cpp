@@ -1,110 +1,71 @@
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
-// Publish to a topic with this message type
-#include <ackermann_msgs/AckermannDriveStamped.h>
-// AckermannDriveStamped messages include this message type
-#include <ackermann_msgs/AckermannDrive.h>
+#include <ackermann_msgs/msg/ackermann_drive.hpp>
+#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
+#include <nav_msgs/msg/odometry.hpp>
 
-// Subscribe to a topic with this message type
-#include <nav_msgs/Odometry.h>
-
-// for printing
-#include <iostream>
-
-// for RAND_MAX
 #include <cstdlib>
 
-class RandomWalker {
+class RandomWalker : public rclcpp::Node {
 private:
-    // A ROS node
-    ros::NodeHandle n;
+    double max_speed_;
+    double max_steering_angle_;
 
-    // car parameters
-    double max_speed, max_steering_angle;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    rclcpp::Publisher<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr drive_pub_;
 
-    // Listen for odom messages
-    ros::Subscriber odom_sub;
-
-    // Publish drive data
-    ros::Publisher drive_pub;
-
-    // previous desired steering angle
-    double prev_angle=0.0;
-
+    double prev_angle_ = 0.0;
 
 public:
-    RandomWalker() {
-        // Initialize the node handle
-        n = ros::NodeHandle("~");
+    RandomWalker() : Node("random_walker") {
+        this->declare_parameter<std::string>("rand_drive_topic", "/rand_drive");
+        this->declare_parameter<std::string>("odom_topic", "/odom");
+        this->declare_parameter<double>("max_speed", 7.0);
+        this->declare_parameter<double>("max_steering_angle", 0.4189);
 
-        // get topic names
-        std::string drive_topic, odom_topic;
-        n.getParam("rand_drive_topic", drive_topic);
-        n.getParam("odom_topic", odom_topic);
+        const auto drive_topic = this->get_parameter("rand_drive_topic").as_string();
+        const auto odom_topic = this->get_parameter("odom_topic").as_string();
+        max_speed_ = this->get_parameter("max_speed").as_double();
+        max_steering_angle_ = this->get_parameter("max_steering_angle").as_double();
 
-        // get car parameters
-        n.getParam("max_speed", max_speed);
-        n.getParam("max_steering_angle", max_steering_angle);
+        drive_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(drive_topic, rclcpp::QoS(10));
 
-        // Make a publisher for drive messages
-        drive_pub = n.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 10);
-
-        // Start a subscriber to listen to odom messages
-        odom_sub = n.subscribe(odom_topic, 1, &RandomWalker::odom_callback, this);
-
-
+        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+            odom_topic,
+            rclcpp::QoS(10),
+            std::bind(&RandomWalker::odom_callback, this, std::placeholders::_1));
     }
 
+private:
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr) {
+        ackermann_msgs::msg::AckermannDriveStamped drive_st_msg;
+        ackermann_msgs::msg::AckermannDrive drive_msg;
 
-    void odom_callback(const nav_msgs::Odometry & msg) {
-        // publishing is done in odom callback just so it's at the same rate as the sim
+        drive_st_msg.header.stamp = this->now();
+        drive_msg.speed = max_speed_ / 2.0;
 
-        // initialize message to be published
-        ackermann_msgs::AckermannDriveStamped drive_st_msg;
-        ackermann_msgs::AckermannDrive drive_msg;
-
-        /// SPEED CALCULATION:
-        // set constant speed to be half of max speed
-        drive_msg.speed = max_speed / 2.0;
-
-
-        /// STEERING ANGLE CALCULATION
-        // random number between 0 and 1
-        double random = ((double) rand() / RAND_MAX);
-        // good range to cause lots of turning
-        double range = max_steering_angle / 2.0;
-        // compute random amount to change desired angle by (between -range and range)
+        double random = static_cast<double>(rand()) / RAND_MAX;
+        const double range = max_steering_angle_ / 2.0;
         double rand_ang = range * random - range / 2.0;
 
-        // sometimes change sign so it turns more (basically add bias to continue turning in current direction)
-        random = ((double) rand() / RAND_MAX);
-        if ((random > .8) && (prev_angle != 0)) {
-            double sign_rand = rand_ang / std::abs(rand_ang);
-            double sign_prev = prev_angle / std::abs(prev_angle);
+        random = static_cast<double>(rand()) / RAND_MAX;
+        if ((random > .8) && (prev_angle_ != 0.0) && (rand_ang != 0.0)) {
+            const double sign_rand = rand_ang / std::abs(rand_ang);
+            const double sign_prev = prev_angle_ / std::abs(prev_angle_);
             rand_ang *= sign_rand * sign_prev;
         }
 
-        // set angle (add random change to previous angle)
-        drive_msg.steering_angle = std::min(std::max(prev_angle + rand_ang, -max_steering_angle), max_steering_angle);
+        drive_msg.steering_angle = std::min(std::max(prev_angle_ + rand_ang, -max_steering_angle_), max_steering_angle_);
+        prev_angle_ = drive_msg.steering_angle;
 
-        // reset previous desired angle
-        prev_angle = drive_msg.steering_angle;
-
-        // set drive message in drive stamped message
         drive_st_msg.drive = drive_msg;
-
-        // publish AckermannDriveStamped message to drive topic
-        drive_pub.publish(drive_st_msg);
-
-
+        drive_pub_->publish(drive_st_msg);
     }
-
-}; // end of class definition
-
+};
 
 int main(int argc, char ** argv) {
-    ros::init(argc, argv, "random_walker");
-    RandomWalker rw;
-    ros::spin();
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<RandomWalker>());
+    rclcpp::shutdown();
     return 0;
 }

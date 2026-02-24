@@ -1,50 +1,64 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.8)
 
 project(f1tenth_simulator)
 
-set(CMAKE_CXX_STANDARD 11)
-
-if(NOT CMAKE_BUILD_TYPE)
-  set (CMAKE_BUILD_TYPE Release)
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "-g") 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-find_package(Eigen3)
+# Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(ackermann_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
-######################################
-# Compile the library >
-######################################
-
-# Add includes
+# Include directories
 include_directories(include)
+
+# Library source files
 file(GLOB SRC_FILES src/*.cpp)
 add_library(${PROJECT_NAME} ${SRC_FILES})
-target_link_libraries(${PROJECT_NAME} ${LIBS})
-set(LIBS ${LIBS} ${PROJECT_NAME})
 
-# Install the library to CMAKE_INSTALL_PREFIX
-# which defaults to /usr/local
+# Link library
+target_link_libraries(${PROJECT_NAME})
+
+# Declare ROS2 dependencies for the library
+ament_target_dependencies(${PROJECT_NAME}
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  geometry_msgs
+)
+
+# Install library
 install(TARGETS ${PROJECT_NAME}
-        DESTINATION lib)
-install(DIRECTORY include/${PROJECT_NAME}
-        DESTINATION include)
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
 
-######################################
-# < End compile the library
-######################################
+install(DIRECTORY include/
+  DESTINATION include)
 
-######################################
-# ROS >
-######################################
-
-# Only run this code in the catkin environment
-if(DEFINED CATKIN_DEVEL_PREFIX)
-  find_package(catkin REQUIRED COMPONENTS
-    roslib
-    roscpp
+# Node executables
+file(GLOB NODE_SRC_FILES node/*.cpp)
+foreach(_node_file ${NODE_SRC_FILES})
+  get_filename_component(_node_name ${_node_file} NAME_WE)
+  add_executable(${_node_name} ${_node_file})
+  target_link_libraries(${_node_name} ${PROJECT_NAME})
+  ament_target_dependencies(${_node_name}
+    rclcpp
     tf2
     tf2_ros
     tf2_geometry_msgs
@@ -52,56 +66,31 @@ if(DEFINED CATKIN_DEVEL_PREFIX)
     nav_msgs
     sensor_msgs
     geometry_msgs
-
-    interactive_markers
     visualization_msgs
-
     std_msgs
-    message_generation
-    )
-
-  generate_messages(
-    DEPENDENCIES
-    std_msgs
-    nav_msgs
-    sensor_msgs
-    )
-
-
-
-
-  # Include catkin_libraries
-  catkin_package(
-      INCLUDE_DIRS include
-      LIBRARIES ${PROJECT_NAME}
-      CATKIN_DEPENDS message_runtime
   )
-  set(LIBS ${LIBS} ${catkin_LIBRARIES})
-  include_directories(include ${catkin_INCLUDE_DIRS})
+  install(TARGETS ${_node_name}
+    DESTINATION lib/${PROJECT_NAME})
+endforeach()
 
+# Install launch files
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch)
 
-  
+# Install parameter files
+install(FILES params.yaml
+  DESTINATION share/${PROJECT_NAME})
 
-  # Add the nodes
-  file(GLOB NODE_SRC_FILES node/*.cpp)
-  foreach(_node_file ${NODE_SRC_FILES})
-      get_filename_component(_node_name ${_node_file} NAME_WE)
-      add_executable(${_node_name} ${_node_file})
-      target_link_libraries(${_node_name} ${LIBS})
-      add_dependencies(${_node_name} f1tenth_simulator_generate_messages_cpp)
-  endforeach()
+# Install maps
+install(DIRECTORY maps/
+  DESTINATION share/${PROJECT_NAME}/maps)
 
-  # Install the library
-  install(TARGETS ${PROJECT_NAME}
-      ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-      LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-      RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-  )
-  install(DIRECTORY include/${PROJECT_NAME}/
-      DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-  )
-endif()
+# Install URDF/xacro files
+install(FILES racecar.xacro
+  DESTINATION share/${PROJECT_NAME})
 
-######################################
-# < End ROS
-######################################
+# Install RViz config
+install(FILES launch/simulator.rviz
+  DESTINATION share/${PROJECT_NAME}/launch)
+
+ament_package()

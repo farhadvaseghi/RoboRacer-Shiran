@@ -1,5 +1,5 @@
 Panels:
-  - Class: rviz/Displays
+  - Class: rviz_common/Displays
     Help Height: 87
     Name: Displays
     Property Tree Widget:
@@ -8,21 +8,21 @@ Panels:
         - /Status1
       Splitter Ratio: 0.5
     Tree Height: 710
-  - Class: rviz/Selection
+  - Class: rviz_common/Selection
     Name: Selection
-  - Class: rviz/Tool Properties
+  - Class: rviz_common/Tool Properties
     Expanded:
       - /2D Pose Estimate1
       - /2D Nav Goal1
       - /Publish Point1
     Name: Tool Properties
     Splitter Ratio: 0.5886790156364441
-  - Class: rviz/Views
+  - Class: rviz_common/Views
     Expanded:
       - /Current View1
     Name: Views
     Splitter Ratio: 0.5
-  - Class: rviz/Time
+  - Class: rviz_common/Time
     Experimental: false
     Name: Time
     SyncMode: 0
@@ -33,7 +33,7 @@ Visualization Manager:
   Class: ""
   Displays:
     - Alpha: 0.699999988079071
-      Class: rviz/Map
+      Class: rviz_default_plugins/Map
       Color Scheme: map
       Draw Behind: false
       Enabled: true
@@ -42,7 +42,7 @@ Visualization Manager:
       Unreliable: false
       Use Timestamp: false
       Value: true
-    - Class: rviz/InteractiveMarkers
+    - Class: rviz_default_plugins/InteractiveMarkers
       Enable Transparency: true
       Enabled: true
       Name: InteractiveMarkers
@@ -59,7 +59,7 @@ Visualization Manager:
         Value: true
       Axis: Z
       Channel Name: intensity
-      Class: rviz/LaserScan
+      Class: rviz_default_plugins/LaserScan
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
@@ -82,8 +82,10 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Alpha: 1
-      Class: rviz/RobotModel
+      Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
+      Description Source: Topic
+      Description Topic: /robot_description
       Enabled: true
       Links:
         All Links Enabled: true
@@ -130,12 +132,12 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: /racecar/robot_description
+      Robot Description: robot_description
       TF Prefix: ""
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Class: rviz/Marker
+    - Class: rviz_default_plugins/Marker
       Enabled: true
       Marker Topic: /dynamic_viz
       Name: Marker
@@ -143,7 +145,7 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz_default_plugins/Marker
       Enabled: true
       Marker Topic: /env_viz
       Name: Marker
@@ -151,7 +153,7 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz_default_plugins/Marker
       Enabled: true
       Marker Topic: /static_viz
       Name: Marker
@@ -161,7 +163,7 @@ Visualization Manager:
       Value: true
     - Alpha: 1
       Buffer Length: 1
-      Class: rviz/Path
+      Class: rviz_default_plugins/Path
       Color: 25; 255; 0
       Enabled: true
       Head Diameter: 0.30000001192092896
@@ -182,7 +184,7 @@ Visualization Manager:
       Topic: /smoothed_path
       Unreliable: false
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz_default_plugins/Marker
       Enabled: true
       Marker Topic: /tree_lines
       Name: Marker
@@ -190,7 +192,7 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz_default_plugins/Marker
       Enabled: true
       Marker Topic: /tree_nodes
       Name: Marker
@@ -198,7 +200,7 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz_default_plugins/Marker
       Enabled: true
       Marker Topic: /waypoint_vis
       Name: Marker
@@ -206,7 +208,7 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz_default_plugins/Marker
       Enabled: true
       Marker Topic: /path_lines
       Name: Marker
@@ -214,7 +216,7 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz/Image
+    - Class: rviz_default_plugins/Image
       Enabled: false
       Image Topic: /converted_scan
       Max Value: 1
@@ -234,23 +236,23 @@ Visualization Manager:
     Frame Rate: 30
   Name: root
   Tools:
-    - Class: rviz/Interact
+    - Class: rviz_default_plugins/Interact
       Hide Inactive Objects: true
-    - Class: rviz/MoveCamera
-    - Class: rviz/Select
-    - Class: rviz/FocusCamera
-    - Class: rviz/Measure
-    - Class: rviz/SetInitialPose
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/Measure
+    - Class: rviz_default_plugins/SetInitialPose
       Topic: /initialpose
-    - Class: rviz/SetGoal
+    - Class: rviz_default_plugins/SetGoal
       Topic: /move_base_simple/goal
-    - Class: rviz/PublishPoint
+    - Class: rviz_default_plugins/PublishPoint
       Single click: true
       Topic: /clicked_point
   Value: true
   Views:
     Current:
-      Class: rviz/Orbit
+      Class: rviz_default_plugins/Orbit
       Distance: 33.034759521484375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549

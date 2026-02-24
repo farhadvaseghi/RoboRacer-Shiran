@@ -1,171 +1,161 @@
-# THIS REPO IS NO LONGER MAINTAINED
-## If you need a F1TENTH simulation in ROS, we have moved to a containerized ROS 2 simulation here: [https://github.com/f1tenth/f1tenth_gym_ros](https://github.com/f1tenth/f1tenth_gym_ros)
-
 # F1TENTH Racecar Simulator
 
-This is a lightweight 2D simulator of the UPenn F1TENTH Racecar.
-It can be built with ROS, or it can be used as a standalone C++ library.
+This workspace contains a lightweight 2D F1TENTH simulator package for ROS2.
+The project is set up for ROS2 Humble with `ament_cmake` and `colcon`.
 
-https://f1tenth.readthedocs.io/en/latest/going_forward/simulator/index.html
+## Project Context
 
-## ROS
+This repository is used by an autonomy team project focused on autonomous racing workflows.
+It supports end-to-end development across:
 
-### Dependencies
+- perception
+- estimation
+- planning
+- control
 
-If you have ```ros-melodic-desktop``` installed, the additional dependencies you must install are:
+Primary goals:
 
-- tf2_geometry_msgs
-- ackermann_msgs
-- joy
-- map_server
+- develop and integrate a complete autonomy stack
+- test and validate behavior in simulation
+- support transfer of methods to a real racecar platform
 
-You can install them by running:
+## Team
 
-    sudo apt-get install ros-melodic-tf2-geometry-msgs ros-melodic-ackermann-msgs ros-melodic-joy ros-melodic-map-server
+| Name                             | Responsibility                                |
+| -------------------------------- | --------------------------------------------- |
+| Mohammadsadegh Shoushtaridehshal | Team Lead / Perception / Autonomy Integration |
+| Farhad Vaseghi                   | Perception / Autonomy Integration             |
+| Milad Bahari Qaragoz             | Estimation                                    |
+| Kazhal Shirvani                  | Planning                                      |
+| Mohammad Barabadi                | Control                                       |
 
-The full list of dependencies can be found in the ```package.xml``` file.
+## Technologies
 
-### Installation
+- ROS2 (Humble)
+- C++
+- Python
+- simulation and autonomy algorithms
 
-To install the simulator package, clone the repo with the simulator and starter code into your catkin workspace:
+## Current Status
 
-    cd ~/catkin_ws/src
-    git clone https://github.com/f1tenth/f1tenth_simulator.git
-    
-Then run ```catkin_make``` to build it:
+- ROS2 launch entrypoint: `launch/simulator.launch.py`
+- Build system: `ament_cmake`
+- Package name: `f1tenth_simulator`
+- Main executables: `simulator`, `mux`, `behavior_controller`, `random_walk`, `keyboard`
 
-    cd ~/catkin_ws
-    catkin_make
-    source devel/setup.bash
+## Workspace Layout
 
-## Quick Start
+- `node/` ROS2 node source files
+- `src/` simulator and kinematics library source files
+- `include/f1tenth_simulator/` headers
+- `launch/` launch files and RViz configuration
+- `maps/` occupancy grid maps
+- `params.yaml` runtime parameters
 
-To run the simulator on its own, run:
+## Requirements
 
-    roslaunch f1tenth_simulator simulator.launch
+Target platform:
 
-This will launch everything you need for a full simulation; roscore, the simulator, a preselected map, a model of the racecar and the joystick server.
+- Ubuntu 22.04
+- ROS2 Humble
 
-To manually control the car using a keyboard, use the standard WASD buttons for acceleration and steering, and pressing the space bar will bring the car to a halt.
-If you are using a joystick, make sure the correct axis is set in ```params.yaml``` for steering and acceleration- this changes between different joysticks
+Runtime dependencies used by this package:
 
-### RVIZ Visualization
+- `ackermann_msgs`
+- `nav2_map_server`
+- `joy`
+- `tf2_geometry_msgs`
+- `visualization_msgs`
+- `robot_state_publisher`
+- `rviz2`
+- `xacro`
 
-With the simulator running, open rviz.
-In the left panel at the bottom click the "Add" button, then in the "By topic" tab add the ```/map``` topic and the ```/scan``` topic.
-Then in the "By display type" tab add the RobotModel type.
-In the left panel under the newly added LaserScan section, change the size to 0.1 meters for a clearer visualization of the lidar (shown in rainbow).
+## Build
 
-You can use a keyboard or USB joystick to drive the car around, or you can place the car manually by clicking the "2D Pose Estimate button" on the top of the screen and dragging your mouse on the desired pose.
+From your ROS2 workspace root:
 
-### ROS API
+```bash
+colcon build --symlink-install
+source install/setup.bash
+```
 
-The simulator was set up with two main objectives in mind- similitude to the real car and fast prototyping of racing algorithms. The *simulator* node was written such that it can be swapped out with the F1/10 car itself, and if all topic names remain the same, the same exact code can be run to drive the car. The rest of the ROS nodes are organized so that new planning algorithms can be added quickly and toggled between during driving.
+Optional dependency resolution before build:
 
-![Simplified graph of ROS nodes](https://github.com/f1tenth/f1tenth_simulator/blob/master/media/sim_graph_public.png)
+```bash
+rosdep install --from-paths src --ignore-src -r -y
+```
 
-Our public simulator includes a simple *random driver* node as an example for what a planning node should look like. Each planner can listen to the sensor data published by the *simulator* and then publish [AckermannDrive](http://docs.ros.org/melodic/api/ackermann_msgs/html/msg/AckermannDrive.html) messages to their own specific topic (e.g., ```/random_drive```). The *mux* node listens to all of these topics, then takes the message from whichever planner is turned on and publishes it to the main ```/drive``` topic, which the *simulator* listens to. Note that only the velocity and steering angle specified in the message are used. The *mux* node also listens to joystick and keyboard messages too, for manual driving.
-The *behavior controller* node tells the *mux* node which planner is on through the ```/mux``` topic. By default, each planner (including keyboard and joystick) is mapped to a joystick button and keyboard key, and they are simply toggled on and off manually. 
-Additionally, upon collision, the car will halt and all mux channels will be clear- nothing will be in control until manual intervention.
+## Run
 
-To instantly move the car to a new state publish [Pose](http://docs.ros.org/melodic/api/geometry_msgs/html/msg/Pose.html) messages to the ```/pose``` topic. This can be useful for scripting the car through a series of automated tests.
+Launch the full simulator stack:
 
-The simulated lidar is published to the ```/scan``` topic as [LaserScan](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/LaserScan.html) messages.
+```bash
+ros2 launch f1tenth_simulator simulator.launch.py
+```
 
-The pose of the car is broadcast as a transformation between the ```map``` frame and the ```base_link``` frame. ```base_link``` is the center of the rear axis. The ```laser``` frame defines the frame from which the lidar scan is taken and another transform is broadcast between it and ```base_link```.
+The launch includes:
 
-### What you can do
+- `joy_node`
+- `nav2_map_server`
+- `robot_state_publisher`
+- `simulator`
+- `mux` (`mux_controller`)
+- `behavior_controller`
+- `random_walk`
+- `keyboard`
+- `rviz2`
 
-If you plan to change the behavior of the car beyond keyboard, joystick, or direct pose control, you will mostly be writing new code in new planning nodes and the *behavior controller* node. Steps for adding a new planner are detailed below. By default, the *behavior controller* listens to sensor messages, so you could write the controller such that the car switches autonomously between planners during a race depending on these dynamic inputs.
+## Basic Control
 
-### Adding a planning node
+Default mode toggle keys (from `params.yaml`):
 
-There are several steps that necessary to adding a new planning node. There is commented out code in each place that details exactly what to do. Here are the steps:
+- `k` keyboard driving mode
+- `j` joystick driving mode
+- `r` random walker mode
+- `b` brake mode
+- `n` navigation channel mode
 
-* Make a new node that publishes to a new drive topic- look at *random_walker* for an example
-* Launch the node in the launch file ```simulator.launch```
-* Make a new ```Channel``` instance at the end of the Mux() constructor in ```mux.cpp```
-* Add if statement to the end of the joystick and keyboard callbacks (key\_callback(), joy\_callback) in ```behavior_controller.cpp```
+Keyboard driving keys:
 
-In ```params.yaml```, add the following:
+- `w` accelerate
+- `s` decelerate/reverse
+- `a` steer left
+- `d` steer right
+- `space` stop
 
-* a new drive topic name
-* a new mux index
-* a new keyboard character (must be a single alphabet letter)
-* a new joystick button index
+## Important Topics
 
-You'll need to get the mux index and drive topic name in ```mux.cpp``` for the new ```Channel```, and the keyboard character, mux index, and joystick button index will all need to be added as member variables in ```behavior_controller.cpp```. Your planning node will obviously need the drive topic name as well.
+- Drive command input: `/drive`
+- LiDAR: `/scan`
+- Odometry: `/odom`
+- IMU: `/imu`
+- Ground-truth pose: `/gt_pose`
+- Manual pose set: `/pose`
+- RViz initial pose: `/initialpose`
+- Map: `/map`
+- Mux channel select: `/mux`
 
-### Parameters
+## Parameters
 
-The parameters listed below can be modified in the ```params.yaml``` file.
+All runtime configuration is in `params.yaml`, including:
 
-#### Topics
+- vehicle dynamics limits and geometry
+- LiDAR model settings
+- joystick/keyboard mappings
+- mux channel indices
+- topic and frame names
 
-```drive_topic```: The topic to listen to for autonomous driving.
+## Maps and Visualization
 
-```joy_topic```: The topic to listen to for joystick commands.
+- Default map in launch: `maps/levine.yaml`
+- RViz config: `launch/simulator.rviz`
+- Robot model source: `racecar.xacro`
 
-```map_topic```: The topic to listen to for maps to use for the simulated scan.
+To switch maps, edit `map_file` in `launch/simulator.launch.py`.
 
-```pose_topic```: The topic to listen to for instantly setting the position of the car.
+## Documentation in This Workspace
 
-```pose_rviz_topic```: The topic to listen to for instantly setting the position of the car with Rviz's "2D Pose Estimate" tool.
-
-```scan_topic```: The topic to publish the simulated scan to.
-
-```distance_transform_topic```: The topic to publish a distance transform to for visualization (see the implementation section below).
-
-
-#### Frames
-
-```base_link```: The frame of the car, specifically the center of the rear axle.
-
-```scan_frame```: The frame of the lidar.
-
-```map_frame```: The frame of the map.
-
-#### Simulator Parameters
-
-```update_pose_rate```: The rate at which the simulator will publish the pose of the car and simulated scan, measured in seconds. Since the dynamics of the system are evaluated analytically, this won't effect the dynamics of the system, however it will effect how often the pose of the car reflects a change in the control input.
-
-#### Car Parameters
-
-```wheelbase```: The distance between the front and rear axle of the racecar, measured in meters. As this distance grows the minimum turning radius of the car increases.
-
-```width```: Width of car in meters
-
-```max_speed```: The maximum speed of the car in meters per second.
-
-```max_steering_angle```: The maximum steering angle of the car in radians.
-
-```max_accel```: The maximum acceleration of the car in meters per second squared.
-
-```max_steering_vel```: The maximum steering angle velocity of the car in radians per second.
-
-```friction_coeff```: Coefficient of friction between wheels and ground
-
-```mass```: Mass of car in kilograms
-
-#### Lidar Parameters
-
-```scan_beams```: The number of beams in the scan.
-
-```scan_field_of_view```: The field of view of the lidar, measured in radians. The beams are distributed uniformly throughout this field of view with the first beam being at ```-scan_field_of_view``` and the last beam being at ```scan_field_of_view```. The center of the field of view is direction the racecar is facing.
-
-```scan_distance_to_base_link```: The distance from the lidar to the center of the rear axle (base_link), measured in meters.
-
-```scan_std_dev```: The ammount of noise applied to the lidar measuredments. The noise is gaussian and centered around the correct measurement with standard deviation ```scan_std_dev```, measured in meters.
-
-```map_free_threshold```: The probability threshold for points in the map to be considered "free". This parameter is used to determine what points the simulated scan hits and what points it passes through.
-
-#### Joystick Parameters
-
-```joy```: This boolean parameter enables the joystick if true.
-
-```joy_speed_axis```: The index of the joystick axis used to control the speed of the car. To determine this parameter it may be useful to print out the joystick messages with ```rostopic echo /joy```.
-
-```joy_angle_axis```: The index of the joystick axis used to control the angle of the car.  To determine this parameter it may be useful to print out the joystick messages with ```rostopic echo /joy```.
-
-```joy_button_idx```: The index of the joystick button used to turn on/off joystick driving.
-
+- `ROS2_QUICK_START.md`
+- `ROS2_MIGRATION.md`
+- `migration.md`
+- `NODE_DATAFLOW.md`
