@@ -4,8 +4,8 @@ Source: `params.yaml` (RoboRacer-Shiran)
 Date: 2026-02-25
 
 ## Dynamics parameters (current sim)
-- wheelbase: 0.3302 m
-- width: 0.2032 m
+- wheelbase: 0.324 m
+- width: 0.232 m
 - mass: 3.47 kg
 - moment_inertia (Izz): 0.04712 kg·m^2
 
@@ -16,9 +16,9 @@ Date: 2026-02-25
 - max_steering_vel: 3.2 rad/s
 
 - friction_coeff: 0.523
-- height_cg: 0.074 m
-- l_cg2front: 0.15875 m
-- l_cg2rear: 0.17145 m
+- height_cg: 0.088 m
+- l_cg2front: 0.0435 m
+- l_cg2rear: 0.281 m
 - C_S_front: 4.718
 - C_S_rear: 5.4562
 
