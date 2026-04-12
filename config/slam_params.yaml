@@ -1,0 +1,9 @@
+slam_toolbox:
+  ros__parameters:
+    # Set these to match your robot's frames
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+    scan_topic: /scan
+    use_sim_time: True
+    mode: mapping

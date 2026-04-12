@@ -93,4 +93,10 @@ install(FILES racecar.xacro
 install(FILES launch/simulator.rviz
   DESTINATION share/${PROJECT_NAME}/launch)
 
+# Install the config directory
+install(DIRECTORY
+  config
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ament_package()
