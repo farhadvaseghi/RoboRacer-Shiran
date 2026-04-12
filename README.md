@@ -1,161 +1,44 @@
-# F1TENTH Racecar Simulator
+# F1TENTH Autonomous Racing – SLAM & Navigation
 
-This workspace contains a lightweight 2D F1TENTH simulator package for ROS2.
-The project is set up for ROS2 Humble with `ament_cmake` and `colcon`.
+This branch (`planner-setup`) contains the configuration and launch files required to map the environment and run the autonomous navigation stack.
 
-## Project Context
+---
 
-This repository is used by an autonomy team project focused on autonomous racing workflows.
-It supports end-to-end development across:
+## 🛠️ Installation & Setup
 
-- perception
-- estimation
-- planning
-- control
+Before running the nodes, you must install the Navigation 2 dependencies and build the workspace.
 
-Primary goals:
+### Install Nav2 Dependencies
 
-- develop and integrate a complete autonomy stack
-- test and validate behavior in simulation
-- support transfer of methods to a real racecar platform
+    sudo apt update
+    sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup
 
-## Team
+### Build the Workspace
 
-| Name                             | Responsibility                                |
-| -------------------------------- | --------------------------------------------- |
-| Mohammadsadegh Shoushtaridehshal | Team Lead / Perception / Autonomy Integration |
-| Farhad Vaseghi                   | Perception / Autonomy Integration             |
-| Milad Bahari Qaragoz             | Estimation                                    |
-| Kazhal Shirvani                  | Planning                                      |
-| Mohammad Barabadi                | Control                                       |
+    cd ~/ros2_ws
+    colcon build --symlink-install --packages-select f1tenth_simulator
+    source install/setup.bash
 
-## Technologies
+---
 
-- ROS2 (Humble)
-- C++
-- Python
-- simulation and autonomy algorithms
+## 🗺️ Phase 1: Mapping (SLAM)
 
-## Current Status
+Use the following commands to generate a map of the race track.
 
-- ROS2 launch entrypoint: `launch/simulator.launch.py`
-- Build system: `ament_cmake`
-- Package name: `f1tenth_simulator`
-- Main executables: `simulator`, `mux`, `behavior_controller`, `random_walk`, `keyboard`
+### 1. Start the Simulator
 
-## Workspace Layout
+    ros2 launch f1tenth_simulator simulator.launch.py
 
-- `node/` ROS2 node source files
-- `src/` simulator and kinematics library source files
-- `include/f1tenth_simulator/` headers
-- `launch/` launch files and RViz configuration
-- `maps/` occupancy grid maps
-- `params.yaml` runtime parameters
+### 2. Launch SLAM Node (in a new terminal)
 
-## Requirements
+    ros2 launch f1tenth_simulator slam.launch.py
 
-Target platform:
+### 3. Drive the Car (in a new terminal)
 
-- Ubuntu 22.04
-- ROS2 Humble
+Use the keyboard to cover the entire track until the map is complete in RViz.
 
-Runtime dependencies used by this package:
+    ros2 run f1tenth_simulator keyboard
 
-- `ackermann_msgs`
-- `nav2_map_server`
-- `joy`
-- `tf2_geometry_msgs`
-- `visualization_msgs`
-- `robot_state_publisher`
-- `rviz2`
-- `xacro`
+### 4. Save the Map
 
-## Build
-
-From your ROS2 workspace root:
-
-```bash
-colcon build --symlink-install
-source install/setup.bash
-```
-
-Optional dependency resolution before build:
-
-```bash
-rosdep install --from-paths src --ignore-src -r -y
-```
-
-## Run
-
-Launch the full simulator stack:
-
-```bash
-ros2 launch f1tenth_simulator simulator.launch.py
-```
-
-The launch includes:
-
-- `joy_node`
-- `nav2_map_server`
-- `robot_state_publisher`
-- `simulator`
-- `mux` (`mux_controller`)
-- `behavior_controller`
-- `random_walk`
-- `keyboard`
-- `rviz2`
-
-## Basic Control
-
-Default mode toggle keys (from `params.yaml`):
-
-- `k` keyboard driving mode
-- `j` joystick driving mode
-- `r` random walker mode
-- `b` brake mode
-- `n` navigation channel mode
-
-Keyboard driving keys:
-
-- `w` accelerate
-- `s` decelerate/reverse
-- `a` steer left
-- `d` steer right
-- `space` stop
-
-## Important Topics
-
-- Drive command input: `/drive`
-- LiDAR: `/scan`
-- Odometry: `/odom`
-- IMU: `/imu`
-- Ground-truth pose: `/gt_pose`
-- Manual pose set: `/pose`
-- RViz initial pose: `/initialpose`
-- Map: `/map`
-- Mux channel select: `/mux`
-
-## Parameters
-
-All runtime configuration is in `params.yaml`, including:
-
-- vehicle dynamics limits and geometry
-- LiDAR model settings
-- joystick/keyboard mappings
-- mux channel indices
-- topic and frame names
-
-## Maps and Visualization
-
-- Default map in launch: `maps/levine.yaml`
-- RViz config: `launch/simulator.rviz`
-- Robot model source: `racecar.xacro`
-
-To switch maps, edit `map_file` in `launch/simulator.launch.py`.
-
-## Documentation in This Workspace
-
-- `ROS2_QUICK_START.md`
-- `ROS2_MIGRATION.md`
-- `migration.md`
-- `NODE_DATAFLOW.md`
+    ros2 run nav2_map_server map_saver_cli -f ~/ros2_ws/src/RoboRacer-Shiran/maps/my_track
