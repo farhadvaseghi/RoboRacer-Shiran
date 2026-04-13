@@ -26,17 +26,17 @@ Before running the nodes, you must install the Navigation 2 dependencies and bui
 Use the following commands to generate a map of the race track.
 
 ### 1. Start the Simulator
-
+    source install/setup.bash
     ros2 launch f1tenth_simulator simulator.launch.py
 
 ### 2. Launch SLAM Node (in a new terminal)
-
+    source install/setup.bash
     ros2 launch f1tenth_simulator slam.launch.py
 
 ### 3. Drive the Car (in a new terminal)
 
 Use the keyboard to cover the entire track until the map is complete in RViz.
-
+    
     ros2 run f1tenth_simulator keyboard
 
 ### 4. Save the Map
