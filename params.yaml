@@ -19,7 +19,7 @@
     mass: 3.47
     moment_inertia: 0.04712
 
-    update_pose_rate: 0.001
+    update_pose_rate: 0.02
 
     scan_beams: 1080
     scan_field_of_view: 6.2831853
@@ -63,7 +63,7 @@
 
     joy_topic: "/joy"
     drive_topic: "/drive"
-    map_topic: "/map"
+    map_topic: "/static_map"
     distance_transform_topic: "/dt"
     scan_topic: "/scan"
     pose_topic: "/pose"
@@ -87,4 +87,4 @@
     scan_frame: "laser"
 
     broadcast_transform: true
-    publish_ground_truth_pose: true
+    publish_ground_truth_pose: false

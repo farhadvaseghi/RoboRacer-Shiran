@@ -13,6 +13,8 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -24,18 +26,39 @@ find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
+# Generate custom messages
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Cone.msg"
+  "msg/ConeArray.msg"
+  DEPENDENCIES std_msgs
+)
+ament_export_dependencies(rosidl_default_runtime)
+
+# Install Python perception nodes
+ament_python_install_package(roboracer_perception)
+
+install(PROGRAMS
+  roboracer_perception/lidar_processor.py
+  roboracer_perception/camera_processor.py
+  roboracer_perception/perception_fusion.py
+  roboracer_perception/cone_map_builder.py
+  roboracer_perception/ackermann_to_twist.py
+  roboracer_perception/ackermann_to_autodrive.py
+  roboracer_perception/twist_to_ackermann.py
+  roboracer_perception/sim_camera.py
+  roboracer_perception/teleop_key.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 # Include directories
 include_directories(include)
 
-# Library source files
+# Library source files (named _lib to avoid clash with rosidl target)
 file(GLOB SRC_FILES src/*.cpp)
-add_library(${PROJECT_NAME} ${SRC_FILES})
-
-# Link library
-target_link_libraries(${PROJECT_NAME})
+add_library(${PROJECT_NAME}_lib ${SRC_FILES})
 
 # Declare ROS2 dependencies for the library
-ament_target_dependencies(${PROJECT_NAME}
+ament_target_dependencies(${PROJECT_NAME}_lib
   tf2
   tf2_ros
   tf2_geometry_msgs
@@ -43,7 +66,7 @@ ament_target_dependencies(${PROJECT_NAME}
 )
 
 # Install library
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME}_lib
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
@@ -56,7 +79,7 @@ file(GLOB NODE_SRC_FILES node/*.cpp)
 foreach(_node_file ${NODE_SRC_FILES})
   get_filename_component(_node_name ${_node_file} NAME_WE)
   add_executable(${_node_name} ${_node_file})
-  target_link_libraries(${_node_name} ${PROJECT_NAME})
+  target_link_libraries(${_node_name} ${PROJECT_NAME}_lib)
   ament_target_dependencies(${_node_name}
     rclcpp
     tf2
