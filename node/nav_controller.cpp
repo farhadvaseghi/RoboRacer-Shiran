@@ -16,8 +16,8 @@ public:
         // -----------------------------
         // Tunable controller parameters
         // -----------------------------
-        this->declare_parameter<double>("target_x");
-        this->declare_parameter<double>("target_y");
+        this->declare_parameter<double>("target_x", 0.0);
+        this->declare_parameter<double>("target_y", 0.0);
         this->declare_parameter<double>("target_yaw", std::numeric_limits<double>::quiet_NaN());
 
         this->declare_parameter<double>("goal_tolerance", 0.1);

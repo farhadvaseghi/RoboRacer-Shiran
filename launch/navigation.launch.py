@@ -16,10 +16,16 @@ def generate_launch_description():
     # Twist → AckermannDriveStamped converter.
     # Nav2 outputs geometry_msgs/Twist on /cmd_vel; the mux expects
     # AckermannDriveStamped on /nav (nav_drive_topic in params.yaml).
-    twist_to_ackermann = Node(
+    # twist_to_ackermann = Node(
+    #     package='f1tenth_simulator',
+    #     executable='twist_to_ackermann.py',
+    #     name='twist_to_ackermann',
+    #     output='screen',
+    # )
+    pure_pursuit_controller = Node(
         package='f1tenth_simulator',
-        executable='twist_to_ackermann.py',
-        name='twist_to_ackermann',
+        executable='pure_pursuit_controller',
+        name='pure_pursuit_controller',
         output='screen',
     )
 
@@ -80,10 +86,10 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        twist_to_ackermann,
         map_to_odom_tf,
         nav2_map_server,
         nav2_map_server_configure,
         nav2_map_server_activate,
         nav2_stack,
+        pure_pursuit_controller,
     ])
