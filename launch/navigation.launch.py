@@ -13,13 +13,13 @@ def generate_launch_description():
     params_file = os.path.join(f1tenth_dir, 'config', 'nav2_params.yaml')
     map_file = os.path.join(f1tenth_dir, 'maps', 'levine.yaml')
 
-    # Twist → AckermannDriveStamped converter.
-    # Nav2 outputs geometry_msgs/Twist on /cmd_vel; the mux expects
-    # AckermannDriveStamped on /nav (nav_drive_topic in params.yaml).
-    twist_to_ackermann = Node(
+    # Mohammad's Pure Pursuit controller.
+    # Subscribes to /plan (from Nav2 planner) and /odom, publishes
+    # AckermannDriveStamped directly to /nav — bypasses twist_to_ackermann.
+    pure_pursuit_controller = Node(
         package='f1tenth_simulator',
-        executable='twist_to_ackermann.py',
-        name='twist_to_ackermann',
+        executable='pure_pursuit_controller',
+        name='pure_pursuit_controller',
         output='screen',
     )
 
@@ -80,7 +80,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        twist_to_ackermann,
+        pure_pursuit_controller,
         map_to_odom_tf,
         nav2_map_server,
         nav2_map_server_configure,
