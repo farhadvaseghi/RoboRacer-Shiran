@@ -1,7 +1,12 @@
-# F1TENTH Autonomous Racing – SLAM & Navigation
+# F1TENTH Autonomous Racing – Navigation and Path Tracking
 
-This branch (`planner-setup`) contains the configuration and launch files required to
-map the environment and run the autonomous navigation stack.
+This branch contains the setup for **autonomous navigation and path tracking** on the F1TENTH simulator.
+
+The current workflow is focused on two main parts:
+1. **Planning**: Nav2 generates a global path on the map and publishes it on `/plan`
+2. **Control / Tracking**: a standalone **Pure Pursuit controller** subscribes to `/plan` and publishes `AckermannDriveStamped` commands to `/nav`
+
+> **Note:** SLAM is not the focus of the current implementation. The main objective of this setup is to test and improve **navigation + trajectory tracking**.
 
 ---
 
@@ -13,20 +18,34 @@ map the environment and run the autonomous navigation stack.
 | Farhad Vaseghi                   | Perception / Autonomy Integration             |
 | Milad Bahari Qaragoz             | Estimation                                    |
 | Kazhal Shirvani                  | Planning                                      |
-| Mohammad Barabadi                | Control                                       |
+| **Mohammad Barabadi**            | **Control / Path Tracking**                   |
+
+---
+
+## Main Contribution in This Branch
+
+The navigation pipeline has been extended so that the **control part is now explicitly integrated**:
+
+- Nav2 still computes the global path and publishes it on `/plan`
+- A custom **Pure Pursuit controller** subscribes to `/plan`
+- The controller uses `/odom` as the vehicle state feedback
+- The controller publishes `AckermannDriveStamped` commands directly to `/nav`
+- The simulator receives the final command through the existing mux pipeline
+
+This makes the control contribution visible and separates **path generation** from **path tracking**.
 
 ---
 
 ## Installation & Setup
 
-### Install Nav2 Dependencies
+### Install Nav2 dependencies
 
 ```bash
 sudo apt update
 sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup
 ```
 
-### Build the Workspace
+### Build the workspace
 
 ```bash
 cd ~/ros2_ws
@@ -36,46 +55,9 @@ source install/setup.bash
 
 ---
 
-## Phase 1: Mapping (SLAM)
+## Main Workflow: Navigation + Tracking
 
-Use these commands to generate a map of the race track from scratch.
-
-### 1. Start the Simulator
-
-```bash
-source install/setup.bash
-ros2 launch f1tenth_simulator simulator.launch.py
-```
-
-### 2. Launch SLAM Node (new terminal)
-
-```bash
-source install/setup.bash
-ros2 launch f1tenth_simulator slam.launch.py
-```
-
-### 3. Drive the car to build the map (new terminal)
-
-Use the keyboard to cover the entire track until the map is complete in RViz.
-
-```bash
-ros2 run f1tenth_simulator keyboard
-```
-
-### 4. Save the map
-
-```bash
-ros2 run nav2_map_server map_saver_cli -f ~/ros2_ws/src/RoboRacer-Shiran/maps/my_track
-```
-
----
-
-## Phase 2: Navigation (Path Planning + Control)
-
-The navigation stack uses the pre-built `levine.yaml` map. Path planning is fully
-working — the robot plans paths across the full map and drives toward the goal.
-
-Open **4 terminals** in this order.
+Open the following terminals in order.
 
 ### Terminal 1 — Simulator
 
@@ -84,7 +66,9 @@ cd ~/ros2_ws && source install/setup.bash
 ros2 launch f1tenth_simulator simulator.launch.py
 ```
 
-Wait until RViz opens and the levine map appears (~5 seconds).
+Wait until the simulator and map are visible.
+
+---
 
 ### Terminal 2 — Navigation stack
 
@@ -93,7 +77,9 @@ cd ~/ros2_ws && source install/setup.bash
 ros2 launch f1tenth_simulator navigation.launch.py
 ```
 
-Wait ~10 seconds for Nav2 to fully activate (planner, controller, costmaps all go `active`).
+This launches the Nav2 planning stack and related nodes.
+
+---
 
 ### Terminal 3 — Nav2 RViz
 
@@ -102,118 +88,127 @@ source ~/ros2_ws/install/setup.bash
 ros2 run rviz2 rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz
 ```
 
+Use this RViz window to send a goal using **Nav2 Goal**.
+
+> RViz only **subscribes** to `/plan` for visualization.
+> It does **not** generate the path and it does **not** control the robot.
+
+---
+
 ### Terminal 4 — Activate navigation mode
 
 ```bash
 ros2 topic pub --once /key std_msgs/msg/String "data: 'n'"
 ```
 
-You should see `Navigation turned on` in Terminal 1.
+You should see `Navigation turned on` in the simulator terminal.
+
+---
 
 ### Send a goal
 
-In the Nav2 RViz window click **Nav2 Goal** in the toolbar, then click a destination on
-the white (free) area of the map. The robot will plan a path and drive to it.
+In the Nav2 RViz window:
+- click **Nav2 Goal**
+- choose a destination on the map
 
-> **If the robot stops mid-path:** a collision was detected and the mux reset.
-> Re-run the Terminal 4 command to re-enable navigation.
+Then:
+- Nav2 planner computes the global path
+- the path is published on `/plan`
+- the Pure Pursuit controller tracks this path and publishes commands to `/nav`
+
+If the robot stops after a collision reset, enable navigation again:
+
+```bash
+ros2 topic pub --once /key std_msgs/msg/String "data: 'n'"
+```
 
 ---
 
-## Navigation Architecture
+## Control-Focused Architecture
 
-```
-Nav2 planner  →  /plan  →  Nav2 controller  →  /cmd_vel_nav
-                                                      |
-                                            velocity_smoother
-                                                      |
-                                                  /cmd_vel
-                                                      |
-                                          twist_to_ackermann.py
-                                                      |
-                                                    /nav
-                                                      |
-                                          mux_controller (index 4)
-                                                      |
-                                                   /drive
-                                                      |
-                                                 simulator
+```text
+Nav2 planner   →   /plan   →   Pure Pursuit Controller   →   /nav
+                                 ↑                             |
+                                 |                             |
+                               /odom                           v
+                                                     mux_controller (index 4)
+                                                               |
+                                                             /drive
+                                                               |
+                                                           simulator
 ```
 
-**TF tree:**
+### Important clarification
 
-```
-map --(static identity)--> odom --(simulator)--> base_link --(static)--> laser
-```
-
-The `map → odom` transform is a static identity because the simulator publishes
-the robot's true world position as `odom → base_link` — no AMCL or SLAM needed
-for navigation.
+- `/plan` is published by the **Nav2 planner**
+- `rviz2` may also subscribe to `/plan`, but only to display the path
+- the **Pure Pursuit controller** is the node responsible for consuming the path for tracking
+- `/nav` is the control topic used to send Ackermann commands toward the simulator pipeline
 
 ---
 
-## For the Controller Teammate (Mohammad)
+## Controller Contribution (Mohammad)
 
-Path planning is complete and working. The robot receives a goal, plans a path over
-the levine map, and publishes it. Your job is to make the robot follow that path well.
+The main control work in this branch is the standalone **Pure Pursuit path tracking** implementation.
 
-### Where the planned path comes from
+### Inputs
 
-```
-/plan   (nav_msgs/msg/Path, frame: map)
-```
+| Topic | Type | Purpose |
+|------|------|---------|
+| `/plan` | `nav_msgs/msg/Path` | Global path generated by Nav2 |
+| `/odom` | `nav_msgs/msg/Odometry` | Current vehicle pose and velocity |
 
-Inspect it live:
+### Output
+
+| Topic | Type | Purpose |
+|------|------|---------|
+| `/nav` | `ackermann_msgs/msg/AckermannDriveStamped` | Control command generated by Pure Pursuit |
+
+### What the controller does
+
+The controller:
+- receives the current global path from `/plan`
+- finds the nearest point on the path
+- selects a lookahead point ahead of the vehicle
+- computes the steering angle using the Pure Pursuit law
+- publishes Ackermann speed and steering commands to `/nav`
+
+This replaces the tracking responsibility of the default Nav2 controller in the current control-focused workflow.
+
+---
+
+## Topics to Monitor During Debugging
 
 ```bash
 ros2 topic echo /plan
+ros2 topic echo /odom
+ros2 topic echo /nav
+ros2 topic echo /drive
 ```
 
-It also appears as a green line in the Nav2 RViz window after a goal is set.
+Useful graph inspection commands:
 
-### Current controller
-
-Configured in `config/nav2_params.yaml` under `controller_server.FollowPath`:
-
-```yaml
-FollowPath:
-  plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
-  desired_linear_vel: 2.0
-  lookahead_dist: 1.5
-  min_lookahead_dist: 0.5
-  max_lookahead_dist: 2.5
-  lookahead_time: 1.5
-  rotate_to_heading_angular_vel: 1.8
-  transform_tolerance: 0.1
-  use_velocity_scaled_lookahead_dist: True
-  min_approach_linear_velocity: 0.05
-  use_collision_aware_lookahead: False
+```bash
+ros2 topic info /plan -v
+ros2 topic info /nav -v
+ros2 node list
 ```
 
-### How to replace or tune the controller
+---
 
-**Option A — Tune the existing pure pursuit controller:**
-Edit the parameters above in `config/nav2_params.yaml`.
+## Key Files
 
-**Option B — Swap in your own Nav2 controller plugin:**
-Change the `plugin:` field to your custom class and add its parameters.
-Your controller must implement the `nav2_core::Controller` interface.
-Reference: https://navigation.ros.org/plugin_tutorials/docs/writing_new_nav2controller_plugin.html
+| File | Purpose |
+|------|---------|
+| `launch/simulator.launch.py` | Starts the simulator |
+| `launch/navigation.launch.py` | Starts the planning/navigation stack |
+| `config/nav2_params.yaml` | Nav2 planner/controller related parameters |
+| `pure_pursuit_controller.cpp` | Standalone Pure Pursuit tracking node |
+| `params.yaml` | Vehicle limits, mux, simulator settings |
 
-**Option C — Write a standalone path-following node:**
-Subscribe to `/plan` (`nav_msgs/msg/Path`) and publish `AckermannDriveStamped`
-directly to `/nav`. Then remove `twist_to_ackermann.py` from `navigation.launch.py`.
+---
 
-### Command output topics
-
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/cmd_vel_nav` | `geometry_msgs/Twist` | Raw controller output |
-| `/cmd_vel` | `geometry_msgs/Twist` | After velocity smoother |
-| `/nav` | `ackermann_msgs/AckermannDriveStamped` | After Twist→Ackermann conversion |
-| `/drive` | `ackermann_msgs/AckermannDriveStamped` | Final command to simulator |
-
-### Vehicle limits (from `params.yaml`)
+## Vehicle Limits
 
 | Parameter | Value |
 |-----------|-------|
@@ -224,39 +219,24 @@ directly to `/nav`. Then remove `twist_to_ackermann.py` from `navigation.launch.
 | `max_steering_vel` | 3.2 rad/s |
 | `wheelbase` | 0.3302 m |
 
-### Re-enabling nav after a collision stop
+---
 
-```bash
-ros2 topic pub --once /key std_msgs/msg/String "data: 'n'"
+## TF Structure
+
+```text
+map --(static identity)--> odom --(simulator)--> base_link --(static)--> laser
 ```
 
-The TTC threshold (sensitivity) is in `params.yaml`:
-```yaml
-ttc_threshold: 0.01   # seconds — lower = more sensitive
-```
+In this setup, `map -> odom` is static identity, so the planned path and odometry are consistent for path tracking in the simulator.
 
 ---
 
-## Key Files
+## Legacy / Optional: SLAM
 
-| File | Purpose |
-|------|---------|
-| `launch/simulator.launch.py` | Simulator, map server, RViz |
-| `launch/navigation.launch.py` | Nav2 stack + map server + static TF |
-| `launch/slam.launch.py` | Standalone SLAM for map building |
-| `config/nav2_params.yaml` | All Nav2 parameters |
-| `config/slam_params.yaml` | SLAM toolbox parameters |
-| `roboracer_perception/twist_to_ackermann.py` | Converts Twist → AckermannDriveStamped |
-| `params.yaml` | Simulator, mux, vehicle dynamics |
+SLAM is not part of the current main workflow, but the project still includes the files to build a map if needed later.
 
-## Important Topics
+Relevant file:
+- `launch/slam.launch.py`
+- `config/slam_params.yaml`
 
-| Topic | Type | Description |
-|-------|------|-------------|
-| `/scan` | `sensor_msgs/LaserScan` | LiDAR (1080 beams, 360°) |
-| `/odom` | `nav_msgs/Odometry` | Odometry |
-| `/plan` | `nav_msgs/Path` | Planned path from Nav2 |
-| `/drive` | `ackermann_msgs/AckermannDriveStamped` | Final drive command |
-| `/map` | `nav_msgs/OccupancyGrid` | Navigation map |
-| `/gt_pose` | `geometry_msgs/PoseStamped` | Ground-truth pose |
-| `/mux` | `std_msgs/Int32MultiArray` | Mux channel state |
+This section is optional and not required for evaluating the current **navigation + control** pipeline.
