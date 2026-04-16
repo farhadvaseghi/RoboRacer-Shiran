@@ -38,3 +38,4 @@ launch/autodrive_sim.launch.py
 launch/gazebo_sim.launch.py
 tools/autodrive_bridge_patched.py
 tools/setup_gcp_vm.sh
+CLAUDE.md
