@@ -48,12 +48,13 @@ def generate_launch_description():
         output='screen',
     )
     
-    # Map server (provides /map)
+    # Map server — publishes on /static_map so slam_toolbox can own /map
     map_server = Node(
         package='nav2_map_server',
         executable='map_server',
         name='map_server',
-        parameters=[{'yaml_filename': map_file}],
+        parameters=[{'yaml_filename': map_file, 'topic_name': 'static_map'}],
+        remappings=[('/map', '/static_map')],
         output='screen',
     )
     

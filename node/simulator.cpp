@@ -3,6 +3,7 @@
 #include <tf2/impl/utils.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
 #include <nav_msgs/msg/occupancy_grid.hpp>
@@ -33,7 +34,7 @@ using namespace racecar_simulator;
 
 class RacecarSimulator : public rclcpp::Node {
 private:
-    std::string map_frame_, base_frame_, scan_frame_;
+    std::string map_frame_, base_frame_, scan_frame_, odom_frame_;
 
     std::vector<int> added_obs_;
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr obs_sub_;
@@ -53,6 +54,7 @@ private:
     double map_free_threshold_;
 
     tf2_ros::TransformBroadcaster br_;
+    tf2_ros::StaticTransformBroadcaster static_br_;
     rclcpp::TimerBase::SharedPtr update_pose_timer_;
 
     rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr drive_sub_;
@@ -99,7 +101,8 @@ private:
 public:
     RacecarSimulator()
         : Node("racecar_simulator"),
-          br_(this) {
+          br_(this),
+          static_br_(this) {
         state_ = CarState();
         state_.x = 0.0;
         state_.y = 0.0;
@@ -129,6 +132,7 @@ public:
         this->declare_parameter<std::string>("map_frame", "map");
         this->declare_parameter<std::string>("base_frame", "base_link");
         this->declare_parameter<std::string>("scan_frame", "laser");
+        this->declare_parameter<std::string>("odom_frame", "odom");
 
         this->declare_parameter<double>("wheelbase", 0.3302);
         this->declare_parameter<double>("update_pose_rate", 0.001);
@@ -171,6 +175,7 @@ public:
         map_frame_ = this->get_parameter("map_frame").as_string();
         base_frame_ = this->get_parameter("base_frame").as_string();
         scan_frame_ = this->get_parameter("scan_frame").as_string();
+        odom_frame_ = this->get_parameter("odom_frame").as_string();
 
         const int scan_beams = this->get_parameter("scan_beams").as_int();
         const double update_pose_rate = this->get_parameter("update_pose_rate").as_double();
@@ -250,6 +255,9 @@ public:
 
         steering_buffer_ = std::vector<double>(buffer_length_);
 
+        // Publish laser link as a static transform — the sensor position is
+        // fixed relative to base_link and never changes at runtime.
+        pub_laser_link_transform();
         RCLCPP_INFO(this->get_logger(), "Simulator constructed.");
     }
 
@@ -334,8 +342,6 @@ private:
             scan_msg.intensities = scan_;
 
             scan_pub_->publish(scan_msg);
-
-            pub_laser_link_transform(timestamp);
         }
     }
 
@@ -519,10 +525,12 @@ private:
         ps.pose.orientation.z = quat.z();
         ps.pose.orientation.w = quat.w();
 
+        // Publish odom→base_link so SLAM can compute map→odom independently.
+        // The ground truth pose is still published on /gt_pose in map frame.
         geometry_msgs::msg::TransformStamped ts;
         ts.transform = t;
         ts.header.stamp = timestamp;
-        ts.header.frame_id = map_frame_;
+        ts.header.frame_id = odom_frame_;
         ts.child_frame_id = base_frame_;
 
         if (broadcast_transform_) {
@@ -552,20 +560,20 @@ private:
         br_.sendTransform(ts_wheel);
     }
 
-    void pub_laser_link_transform(const rclcpp::Time & timestamp) {
+    void pub_laser_link_transform() {
         geometry_msgs::msg::TransformStamped scan_ts;
         scan_ts.transform.translation.x = scan_distance_to_base_link_;
         scan_ts.transform.rotation.w = 1;
-        scan_ts.header.stamp = timestamp;
+        scan_ts.header.stamp = rclcpp::Time(0);
         scan_ts.header.frame_id = base_frame_;
         scan_ts.child_frame_id = scan_frame_;
-        br_.sendTransform(scan_ts);
+        static_br_.sendTransform(scan_ts);
     }
 
     void pub_odom(const rclcpp::Time & timestamp) {
         nav_msgs::msg::Odometry odom;
         odom.header.stamp = timestamp;
-        odom.header.frame_id = map_frame_;
+        odom.header.frame_id = odom_frame_;
         odom.child_frame_id = base_frame_;
         odom.pose.pose.position.x = state_.x;
         odom.pose.pose.position.y = state_.y;

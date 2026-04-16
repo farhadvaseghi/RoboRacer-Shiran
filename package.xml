@@ -9,8 +9,17 @@
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <depend>rosidl_default_runtime</depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+  <depend>cv_bridge</depend>
+  <depend>python3-numpy</depend>
+  <depend>python3-sklearn</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
@@ -21,6 +30,7 @@
   <depend>visualization_msgs</depend>
   <depend>std_msgs</depend>
   <depend>joy</depend>
+  <depend>slam_toolbox</depend>
   <depend>nav2_map_server</depend>
   <depend>robot_state_publisher</depend>
   <depend>rviz2</depend>
