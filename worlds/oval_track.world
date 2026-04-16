@@ -1,0 +1,999 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="oval_track">
+
+    <!-- Lighting -->
+    <light name="sun" type="directional">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Physics -->
+    <physics type="ode">
+      <real_time_update_rate>1000</real_time_update_rate>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1</real_time_factor>
+    </physics>
+
+    <!-- Ground plane -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <material>
+            <ambient>0.4 0.4 0.4 1</ambient>
+            <diffuse>0.4 0.4 0.4 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Track surface (dark tarmac) -->
+    <model name="track_surface">
+      <static>true</static>
+      <pose>10 2.5 0.001 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry><box size="28 12 0.001"/></geometry>
+          <material>
+            <ambient>0.15 0.15 0.15 1</ambient>
+            <diffuse>0.15 0.15 0.15 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Blue cones (left boundary) -->
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_0</name>
+      <pose>1.0000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_1</name>
+      <pose>2.5000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_2</name>
+      <pose>4.0000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_3</name>
+      <pose>5.5000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_4</name>
+      <pose>7.0000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_5</name>
+      <pose>8.5000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_6</name>
+      <pose>10.0000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_7</name>
+      <pose>11.5000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_8</name>
+      <pose>13.0000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_9</name>
+      <pose>14.5000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_10</name>
+      <pose>16.0000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_11</name>
+      <pose>17.5000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_12</name>
+      <pose>19.0000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_13</name>
+      <pose>1.0000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_14</name>
+      <pose>2.5000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_15</name>
+      <pose>4.0000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_16</name>
+      <pose>5.5000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_17</name>
+      <pose>7.0000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_18</name>
+      <pose>8.5000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_19</name>
+      <pose>10.0000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_20</name>
+      <pose>11.5000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_21</name>
+      <pose>13.0000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_22</name>
+      <pose>14.5000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_23</name>
+      <pose>16.0000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_24</name>
+      <pose>17.5000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_25</name>
+      <pose>19.0000 4.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_26</name>
+      <pose>-0.2605 3.9772 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_27</name>
+      <pose>-0.5130 3.9095 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_28</name>
+      <pose>-0.7500 3.7990 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_29</name>
+      <pose>-0.9642 3.6491 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_30</name>
+      <pose>-1.1491 3.4642 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_31</name>
+      <pose>-1.2990 3.2500 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_32</name>
+      <pose>-1.4095 3.0130 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_33</name>
+      <pose>-1.4772 2.7605 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_34</name>
+      <pose>-1.5000 2.5000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_35</name>
+      <pose>-1.4772 2.2395 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_36</name>
+      <pose>-1.4095 1.9870 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_37</name>
+      <pose>-1.2990 1.7500 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_38</name>
+      <pose>-1.1491 1.5358 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_39</name>
+      <pose>-0.9642 1.3509 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_40</name>
+      <pose>-0.7500 1.2010 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_41</name>
+      <pose>-0.5130 1.0905 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_42</name>
+      <pose>-0.2605 1.0228 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_43</name>
+      <pose>20.2605 1.0228 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_44</name>
+      <pose>20.5130 1.0905 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_45</name>
+      <pose>20.7500 1.2010 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_46</name>
+      <pose>20.9642 1.3509 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_47</name>
+      <pose>21.1491 1.5358 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_48</name>
+      <pose>21.2990 1.7500 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_49</name>
+      <pose>21.4095 1.9870 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_50</name>
+      <pose>21.4772 2.2395 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_51</name>
+      <pose>21.5000 2.5000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_52</name>
+      <pose>21.4772 2.7605 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_53</name>
+      <pose>21.4095 3.0130 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_54</name>
+      <pose>21.2990 3.2500 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_55</name>
+      <pose>21.1491 3.4642 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_56</name>
+      <pose>20.9642 3.6491 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_57</name>
+      <pose>20.7500 3.7990 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_58</name>
+      <pose>20.5130 3.9095 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://blue_cone</uri>
+      <name>blue_cone_59</name>
+      <pose>20.2605 3.9772 0 0 0 0</pose>
+    </include>
+
+
+    <!-- Yellow cones (right boundary) -->
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_0</name>
+      <pose>1.0000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_1</name>
+      <pose>2.5000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_2</name>
+      <pose>4.0000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_3</name>
+      <pose>5.5000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_4</name>
+      <pose>7.0000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_5</name>
+      <pose>8.5000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_6</name>
+      <pose>10.0000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_7</name>
+      <pose>11.5000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_8</name>
+      <pose>13.0000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_9</name>
+      <pose>14.5000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_10</name>
+      <pose>16.0000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_11</name>
+      <pose>17.5000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_12</name>
+      <pose>19.0000 -1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_13</name>
+      <pose>1.0000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_14</name>
+      <pose>2.5000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_15</name>
+      <pose>4.0000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_16</name>
+      <pose>5.5000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_17</name>
+      <pose>7.0000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_18</name>
+      <pose>8.5000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_19</name>
+      <pose>10.0000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_20</name>
+      <pose>11.5000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_21</name>
+      <pose>13.0000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_22</name>
+      <pose>14.5000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_23</name>
+      <pose>16.0000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_24</name>
+      <pose>17.5000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_25</name>
+      <pose>19.0000 6.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_26</name>
+      <pose>-0.6078 5.9468 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_27</name>
+      <pose>-1.1971 5.7889 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_28</name>
+      <pose>-1.7500 5.5311 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_29</name>
+      <pose>-2.2498 5.1812 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_30</name>
+      <pose>-2.6812 4.7498 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_31</name>
+      <pose>-3.0311 4.2500 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_32</name>
+      <pose>-3.2889 3.6971 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_33</name>
+      <pose>-3.4468 3.1078 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_34</name>
+      <pose>-3.5000 2.5000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_35</name>
+      <pose>-3.4468 1.8922 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_36</name>
+      <pose>-3.2889 1.3029 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_37</name>
+      <pose>-3.0311 0.7500 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_38</name>
+      <pose>-2.6812 0.2502 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_39</name>
+      <pose>-2.2498 -0.1812 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_40</name>
+      <pose>-1.7500 -0.5311 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_41</name>
+      <pose>-1.1971 -0.7889 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_42</name>
+      <pose>-0.6078 -0.9468 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_43</name>
+      <pose>20.6078 -0.9468 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_44</name>
+      <pose>21.1971 -0.7889 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_45</name>
+      <pose>21.7500 -0.5311 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_46</name>
+      <pose>22.2498 -0.1812 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_47</name>
+      <pose>22.6812 0.2502 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_48</name>
+      <pose>23.0311 0.7500 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_49</name>
+      <pose>23.2889 1.3029 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_50</name>
+      <pose>23.4468 1.8922 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_51</name>
+      <pose>23.5000 2.5000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_52</name>
+      <pose>23.4468 3.1078 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_53</name>
+      <pose>23.2889 3.6971 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_54</name>
+      <pose>23.0311 4.2500 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_55</name>
+      <pose>22.6812 4.7498 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_56</name>
+      <pose>22.2498 5.1812 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_57</name>
+      <pose>21.7500 5.5311 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_58</name>
+      <pose>21.1971 5.7889 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://yellow_cone</uri>
+      <name>yellow_cone_59</name>
+      <pose>20.6078 5.9468 0 0 0 0</pose>
+    </include>
+
+
+    <!-- Orange cones (start/finish gate) -->
+    <include>
+      <uri>model://orange_cone</uri>
+      <name>orange_cone_0</name>
+      <pose>0.5000 1.0000 0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://orange_cone</uri>
+      <name>orange_cone_1</name>
+      <pose>0.5000 -1.0000 0 0 0 0</pose>
+    </include>
+
+
+    <!-- Random obstacles (barrels) -->
+    <model name="obstacle_0">
+      <static>true</static>
+      <pose>14.4963 0.3134 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_1">
+      <static>true</static>
+      <pose>9.3026 0.3433 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_2">
+      <static>true</static>
+      <pose>15.8083 -0.4463 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_3">
+      <static>true</static>
+      <pose>13.3092 -0.0595 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_4">
+      <static>true</static>
+      <pose>3.9597 -0.1550 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_5">
+      <static>true</static>
+      <pose>17.6221 0.5121 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_6">
+      <static>true</static>
+      <pose>12.4799 5.5570 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_7">
+      <static>true</static>
+      <pose>15.2528 5.2238 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_8">
+      <static>true</static>
+      <pose>9.3729 5.4387 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_9">
+      <static>true</static>
+      <pose>6.0222 4.7527 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_10">
+      <static>true</static>
+      <pose>11.0961 5.8002 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="obstacle_11">
+      <static>true</static>
+      <pose>3.4892 5.6683 0.15 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><cylinder><radius>0.10</radius><length>0.30</length></cylinder></geometry>
+          <material>
+            <ambient>0.75 0.20 0.10 1</ambient>
+            <diffuse>0.75 0.20 0.10 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+
+  </world>
+</sdf>

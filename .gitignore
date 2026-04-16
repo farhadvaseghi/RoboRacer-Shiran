@@ -1,19 +1,26 @@
+# ROS 2 build artifacts
 build/
 install/
 log/
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
 .venv/
+
+# Pytest cache
+.pytest_cache/
+
+# Claude Code personal settings
+.claude/
+
+# IDE / OS
 .vscode/
 .DS_Store
 Thumbs.db
 
-# ROS build artifacts
-build/
-install/
-log/
-
-# bags / recorded data
+# Recorded data
 *.bag
 *.bag.active
 *.db3
@@ -26,7 +33,8 @@ log/
 *.h5
 *.pkl
 
-# Python
-__pycache__/
-*.pyc
-.venv/
+# Gazebo/other simulator experiments (not needed for f1tenth sim)
+launch/autodrive_sim.launch.py
+launch/gazebo_sim.launch.py
+tools/autodrive_bridge_patched.py
+tools/setup_gcp_vm.sh
