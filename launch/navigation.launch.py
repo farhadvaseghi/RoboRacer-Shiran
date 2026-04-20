@@ -11,6 +11,7 @@ def generate_launch_description():
     f1tenth_dir = get_package_share_directory('f1tenth_simulator')
 
     params_file = os.path.join(f1tenth_dir, 'config', 'nav2_params.yaml')
+    controller_params_file = os.path.join(f1tenth_dir, 'config', 'controller_params.yaml')
     map_file = os.path.join(f1tenth_dir, 'maps', 'levine.yaml')
 
     # Twist → AckermannDriveStamped converter.
@@ -26,6 +27,7 @@ def generate_launch_description():
         package='f1tenth_simulator',
         executable='pure_pursuit_controller',
         name='pure_pursuit_controller',
+        parameters=[controller_params_file],
         output='screen',
     )
 
