@@ -55,23 +55,50 @@ CONE_BGR = {
 MAX_DIST = 8.0   # m — don't render cones beyond this distance
 
 # ---------------------------------------------------------------------------
-# Cone layout for the oval track (world frame, metres).
-# Blue  cones = left  boundary (positive Y)
-# Yellow cones = right boundary (negative Y)
-# Orange cones = start / finish markers
+# Cone layout — generated to match generate_oval_track.py exactly.
+# Blue  (1) = left/inner boundary, Yellow (2) = right/outer boundary,
+# Orange (3) = start gate.
+#
+# Track geometry:
+#   Bottom straight : x = 1.0..19.0 step 1.5,  blue y=+1.0, yellow y=-1.0
+#   Top straight    : x = 1.0..19.0 step 1.5,  blue y=+4.0, yellow y=+6.0
+#   Left  bend      : centre (0, 2.5),  inner r=1.5 (blue), outer r=3.5 (yellow), 100°→260°
+#   Right bend      : centre (20, 2.5), inner r=1.5 (blue), outer r=3.5 (yellow), -80°→80°
+#   Start gate      : orange at (0.5, ±1.0)
 # ---------------------------------------------------------------------------
-CONES = [
-    # Left boundary — blue  (y = +1.2 m, every 3 m)
-    ( 3.0,  1.2, 1), ( 6.0,  1.2, 1), ( 9.0,  1.2, 1), (12.0,  1.2, 1),
-    (15.0,  1.2, 1), (18.0,  1.2, 1), (21.0,  1.2, 1), (24.0,  1.2, 1),
-    (27.0,  1.2, 1), (30.0,  1.2, 1), (33.0,  1.2, 1), (36.0,  1.2, 1),
-    # Right boundary — yellow (y = -1.2 m, every 3 m)
-    ( 3.0, -1.2, 2), ( 6.0, -1.2, 2), ( 9.0, -1.2, 2), (12.0, -1.2, 2),
-    (15.0, -1.2, 2), (18.0, -1.2, 2), (21.0, -1.2, 2), (24.0, -1.2, 2),
-    (27.0, -1.2, 2), (30.0, -1.2, 2), (33.0, -1.2, 2), (36.0, -1.2, 2),
-    # Start / finish — orange
-    ( 1.0,  1.2, 3), ( 1.0, -1.2, 3),
-]
+def _build_track_cones():
+    cones = []
+    straight_x = [1.0 + 1.5 * i for i in range(13)]   # 1.0, 2.5, … 19.0
+
+    # Bottom straight
+    for x in straight_x:
+        cones.append((x,  1.0, 1))   # blue  (left)
+        cones.append((x, -1.0, 2))   # yellow (right)
+
+    # Top straight
+    for x in straight_x:
+        cones.append((x,  4.0, 1))   # blue  (left)
+        cones.append((x,  6.0, 2))   # yellow (right)
+
+    # Left bend  — centre (0, 2.5), 100° → 260° step 10°
+    for deg in range(100, 261, 10):
+        r = math.radians(deg)
+        cones.append((0.0  + 1.5 * math.cos(r), 2.5 + 1.5 * math.sin(r), 1))
+        cones.append((0.0  + 3.5 * math.cos(r), 2.5 + 3.5 * math.sin(r), 2))
+
+    # Right bend — centre (20, 2.5), -80° → 80° step 10°
+    for deg in range(-80, 81, 10):
+        r = math.radians(deg)
+        cones.append((20.0 + 1.5 * math.cos(r), 2.5 + 1.5 * math.sin(r), 1))
+        cones.append((20.0 + 3.5 * math.cos(r), 2.5 + 3.5 * math.sin(r), 2))
+
+    # Start gate
+    cones.append((0.5,  1.0, 3))
+    cones.append((0.5, -1.0, 3))
+
+    return cones
+
+CONES = _build_track_cones()
 
 
 def _yaw_from_quaternion(qx: float, qy: float, qz: float, qw: float) -> float:

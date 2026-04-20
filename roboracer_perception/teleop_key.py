@@ -11,8 +11,8 @@ Controls:
     Space     — full stop (speed=0, steering=0)
     Q         — quit
 
-Speed step   : 0.5 m/s  (max ±4.0 m/s)
-Steering step: 0.05 rad (max ±0.4 rad ≈ ±23°)
+Speed step   : 3.0 m/s forward, 1.5 m/s reverse
+Steering     : ±0.35 rad (±20°)
 """
 
 import sys
@@ -28,12 +28,13 @@ from ackermann_msgs.msg import AckermannDriveStamped
 
 DRIVE_TOPIC    = '/drive'
 
-SPEED_FWD      = 6.0   # m/s when W is held
-SPEED_REV      = 3.0   # m/s when S is held (reverse)
-STEER_VAL      = 0.0873 # radians when A or D is held (~5°)
+SPEED_FWD      = 3.0   # m/s when W is held
+SPEED_REV      = 1.5   # m/s when S is held (reverse)
+STEER_VAL      = 0.20  # radians when A or D is held (~11°)
 PUBLISH_HZ     = 20    # Hz
 SPEED_TIMEOUT  = 0.6   # seconds without W before speed zeroes
-STEER_TIMEOUT  = 1.5   # seconds without A/D before steer zeroes (long enough for a full bend)
+STEER_TIMEOUT  = 0.5   # seconds without A/D before steer zeroes (~400ms key-repeat delay + margin)
+CORNER_FACTOR  = 0.55  # speed multiplier while steering (auto-brakes for bends)
 
 HELP = "\r\n".join([
     "",
@@ -90,9 +91,13 @@ class TeleopKey(Node):
             self._speed = 0.0
         if now - self._last_steer_time > STEER_TIMEOUT:
             self._steer = 0.0
+        # Auto corner-braking: reduce speed while steering is active
+        speed = self._speed
+        if abs(self._steer) > 0.01 and speed > 0:
+            speed = speed * CORNER_FACTOR
         msg = AckermannDriveStamped()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.drive.speed = self._speed
+        msg.drive.speed = speed
         msg.drive.steering_angle = self._steer
         self._pub.publish(msg)
 
@@ -105,7 +110,9 @@ class TeleopKey(Node):
             self._last_speed_time = time.time()
         elif key == 's':
             self._speed = -SPEED_REV
+            self._steer = 0.0                    # zero steer on reverse — prevents spinning out of walls
             self._last_speed_time = time.time()
+            self._last_steer_time = time.time()
         elif key == 'a':
             self._steer = STEER_VAL
             self._last_steer_time = time.time()
