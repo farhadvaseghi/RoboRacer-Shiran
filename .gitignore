@@ -12,7 +12,7 @@ __pycache__/
 # Pytest cache
 .pytest_cache/
 
-# Claude Code personal settings
+# Personal/local settings
 .claude/
 
 # IDE / OS

@@ -34,7 +34,7 @@ FX = FY = 700.0
 CX = IMG_W / 2.0   # 640.0
 CY = IMG_H / 2.0   # 360.0
 
-# Camera position relative to base_link (rear axle, ground level) — from CLAUDE.md
+# Camera position relative to base_link (rear axle, ground level) — see HOWTO.md
 CAM_X =  0.270
 CAM_Y = -0.005
 CAM_Z =  0.155
