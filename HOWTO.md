@@ -41,8 +41,7 @@ bash setup_workspace.sh
 ```
 
 The setup script:
-- Clones `f1tenth_gym_ros` and `f1tenth_gym` automatically
-- Applies the required patches (portable map path, collision handling)
+- Symlinks the vendored `f1tenth_gym_ros` and `f1tenth_gym` from `deps/` into `src/` — no internet access needed for these
 - Installs `f110_gym` via pip
 - Builds the full workspace
 
@@ -161,7 +160,7 @@ source install/setup.bash
 ## Troubleshooting
 
 **Simulator fails to load the map**
-Run `setup_workspace.sh` again — the patches may not have been applied correctly the first time.
+Run `setup_workspace.sh` again — the symlinks may not have been created correctly the first time.
 
 **`ModuleNotFoundError: f110_gym`**
 ```bash
