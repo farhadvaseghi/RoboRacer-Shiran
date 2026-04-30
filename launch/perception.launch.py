@@ -128,6 +128,19 @@ def generate_launch_description():
         output='screen',
     )
 
+    cone_tracker = Node(
+        package='roboracer_perception',
+        executable='cone_tracker_node',
+        name='cone_tracker',
+        parameters=[params_file, {
+            'input_topic': '/perception/cones',
+            'odom_topic': '/ego_racecar/odom',
+            'map_frame': 'ego_racecar/odom',
+        }],
+        output='screen',
+        condition=IfCondition(sim),
+    )
+
     # ------------------------------------------------------------------
     # Simulation-only group
     # ------------------------------------------------------------------
@@ -230,6 +243,7 @@ def generate_launch_description():
 
         # LiDAR pipeline
         lidar_processor,
+        cone_tracker,
 
         # Mode-specific groups
         sim_group,

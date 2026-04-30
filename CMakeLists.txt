@@ -66,6 +66,10 @@ install(PROGRAMS roboracer_perception/cone_map_builder.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME cone_map_builder_node
 )
+install(PROGRAMS roboracer_perception/cone_tracker.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME cone_tracker_node
+)
 install(PROGRAMS roboracer_perception/ackermann_to_autodrive.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME ackermann_to_autodrive
@@ -73,6 +77,10 @@ install(PROGRAMS roboracer_perception/ackermann_to_autodrive.py
 install(PROGRAMS roboracer_perception/sim_camera.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME sim_camera
+)
+install(PROGRAMS roboracer_perception/moving_obstacle_controller.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME moving_obstacle_controller
 )
 
 # ---------------------------------------------------------------------------
@@ -94,6 +102,9 @@ if(BUILD_TESTING)
 
   find_package(ament_cmake_pytest REQUIRED)
   ament_add_pytest_test(test_lidar_processor test/test_lidar_processor.py
+    PYTHON_EXECUTABLE "${Python3_EXECUTABLE}"
+  )
+  ament_add_pytest_test(test_cone_tracker test/test_cone_tracker.py
     PYTHON_EXECUTABLE "${Python3_EXECUTABLE}"
   )
 endif()

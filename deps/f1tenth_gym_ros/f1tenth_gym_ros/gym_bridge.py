@@ -38,6 +38,12 @@ import gym
 import numpy as np
 from transforms3d import euler
 
+
+def _normalize_angle(theta: float) -> float:
+    """Wrap yaw to [-pi, pi]."""
+    return float(np.arctan2(np.sin(theta), np.cos(theta)))
+
+
 class GymBridge(Node):
     def __init__(self):
         super().__init__('gym_bridge')
@@ -91,8 +97,17 @@ class GymBridge(Node):
         self.ego_steer = 0.0
         self.ego_collision = False
         self.collision_grace_steps = 0  # steps remaining where done is ignored
+        self._collision_count = 0
+        self._last_slowdown_bucket = None
+        self._collision_streak = 0
+        self._last_collision_pose = None
+        self._recovery_steps = 0
+        self._recovery_speed = 0.0
+        self._recovery_steer = 0.0
+        self._recovery_escape_steer = 0.0
+        self._recovery_phase = None
         # Rolling buffer of safe poses — used to back up before the wall on collision
-        _buf = 50  # 50 steps × 0.01 s = 0.5 s look-back
+        _buf = 250  # 250 steps × 0.01 s = 2.5 s look-back
         self._safe_poses = [[sx, sy, stheta] for _ in range(_buf)]
         self._safe_pose_idx = 0
         ego_scan_topic = self.get_parameter('ego_scan_topic').value
@@ -201,6 +216,55 @@ class GymBridge(Node):
                 self.teleop_callback,
                 10)
 
+    def _reset_control_state(self) -> None:
+        """Clear commanded and recovery state after a simulator reset."""
+        self.ego_requested_speed = 0.0
+        self.ego_steer = 0.0
+        self._last_slowdown_bucket = None
+        self._recovery_steps = 0
+        self._recovery_speed = 0.0
+        self._recovery_steer = 0.0
+        self._recovery_escape_steer = 0.0
+        self._recovery_phase = None
+
+    def _candidate_pose_is_safe(self, pose) -> bool:
+        """Reject clearly bad recovery poses before feeding them back into the simulator."""
+        if pose is None or len(pose) != 3:
+            return False
+        x, y, theta = pose
+        if not np.isfinite(x) or not np.isfinite(y) or not np.isfinite(theta):
+            return False
+        if abs(theta) > 4.0 * np.pi:
+            return False
+        return True
+
+    def _sanitize_pose(self, pose):
+        """Return a pose with finite coordinates and normalized yaw."""
+        if not self._candidate_pose_is_safe(pose):
+            return list(self.ego_start_pose)
+        x, y, theta = pose
+        return [float(x), float(y), _normalize_angle(float(theta))]
+
+    def _reset_env_with_pose(self, ego_pose, opp_pose=None) -> None:
+        """Reset env and bridge state from a sanitized pose."""
+        ego_pose = self._sanitize_pose(ego_pose)
+        self._reset_control_state()
+        if self.has_opp:
+            if opp_pose is None:
+                opp_pose = list(self.opp_pose)
+            opp_pose = self._sanitize_pose(opp_pose)
+            self.obs, _, self.done, _ = self.env.reset(np.array([ego_pose, opp_pose]))
+        else:
+            self.obs, _, self.done, _ = self.env.reset(np.array([ego_pose]))
+        self._update_sim_state()
+
+    def reset_to_start_pose(self) -> None:
+        """Deterministically return the ego car to its configured start pose."""
+        self._collision_streak = 0
+        self._last_collision_pose = None
+        self.collision_grace_steps = 0
+        self._reset_env_with_pose(self.ego_start_pose, self.opp_pose if self.has_opp else None)
+
 
     def drive_callback(self, drive_msg):
         self.ego_requested_speed = drive_msg.drive.speed
@@ -222,10 +286,9 @@ class GymBridge(Node):
         _, _, rtheta = euler.quat2euler([rqw, rqx, rqy, rqz], axes='sxyz')
         if self.has_opp:
             opp_pose = [self.obs['poses_x'][1], self.obs['poses_y'][1], self.obs['poses_theta'][1]]
-            self.obs, _ , self.done, _ = self.env.reset(np.array([[rx, ry, rtheta], opp_pose]))
+            self._reset_env_with_pose([rx, ry, rtheta], opp_pose)
         else:
-            self.obs, _ , self.done, _ = self.env.reset(np.array([[rx, ry, rtheta]]))
-        self._update_sim_state()
+            self._reset_env_with_pose([rx, ry, rtheta])
 
     def opp_reset_callback(self, pose_msg):
         if self.has_opp:
@@ -236,8 +299,7 @@ class GymBridge(Node):
             rqz = pose_msg.pose.orientation.z
             rqw = pose_msg.pose.orientation.w
             _, _, rtheta = euler.quat2euler([rqw, rqx, rqy, rqz], axes='sxyz')
-            self.obs, _ , self.done, _ = self.env.reset(np.array([list(self.ego_pose), [rx, ry, rtheta]]))
-            self._update_sim_state()
+            self._reset_env_with_pose(list(self.ego_pose), [rx, ry, rtheta])
 
     def teleop_callback(self, twist_msg):
         if not self.ego_drive_published:
@@ -264,49 +326,274 @@ class GymBridge(Node):
         valid = [r for r in self.ego_scan[lo:hi] if 0.05 < r < 29.0]
         return min(valid) if valid else 30.0
 
+    def _forward_path_clearance(self, steer: float) -> float:
+        """Return clearance along a narrower forward path biased by steering."""
+        steer_ratio = max(-1.0, min(1.0, steer / 0.34))
+        center_ratio = 0.5 + 0.10 * steer_ratio
+        return self._sector_clearance(center_ratio, half_span_ratio=0.045)
+
+    def _sector_clearance(self, center_ratio: float, half_span_ratio: float = 0.08) -> float:
+        """Return the minimum LiDAR distance in a normalized scan sector."""
+        if not self.ego_scan:
+            return 30.0
+        n = len(self.ego_scan)
+        mid = int(center_ratio * n)
+        span = max(1, int(half_span_ratio * n))
+        lo = max(0, mid - span)
+        hi = min(n, mid + span)
+        valid = [r for r in self.ego_scan[lo:hi] if 0.05 < r < 29.0]
+        return min(valid) if valid else 30.0
+
+    def _left_clearance(self) -> float:
+        return self._sector_clearance(0.75)
+
+    def _right_clearance(self) -> float:
+        return self._sector_clearance(0.25)
+
+    def _rear_left_clearance(self) -> float:
+        return self._sector_clearance(0.90, 0.06)
+
+    def _rear_right_clearance(self) -> float:
+        return self._sector_clearance(0.10, 0.06)
+
+    def _rear_clearance(self) -> float:
+        return min(self._rear_left_clearance(), self._rear_right_clearance())
+
+    def _set_recovery_phase(self, phase: str, steps: int) -> None:
+        self._recovery_phase = phase
+        self._recovery_steps = steps
+        if phase == 'reverse':
+            self._recovery_speed = -0.8
+            self._recovery_steer = -self._recovery_escape_steer
+        else:
+            self._recovery_speed = 0.8
+            self._recovery_steer = self._recovery_escape_steer
+
+    def _select_safe_pose(self):
+        """Pick an older safe pose, looking further back if collisions repeat."""
+        max_lookback = min(len(self._safe_poses) - 1, 40 + self._collision_streak * 35)
+        step = 10
+        for lookback in range(max_lookback, step - 1, -step):
+            idx = (self._safe_pose_idx - lookback) % len(self._safe_poses)
+            candidate = self._sanitize_pose(self._safe_poses[idx])
+            if self._candidate_pose_is_safe(candidate):
+                return candidate, lookback
+        return list(self.ego_start_pose), max_lookback
+
+    def _start_recovery(self) -> None:
+        """Temporarily override control to escape from the wall after a reset."""
+        left_clear = self._left_clearance()
+        right_clear = self._right_clearance()
+        front_clear = self._forward_clearance()
+
+        # Forward motion steers toward the more open side. Reverse motion must
+        # use the opposite steering sign because Ackermann yaw reverses in reverse.
+        self._recovery_escape_steer = -0.34 if left_clear < right_clear else 0.34
+        if front_clear < 0.45:
+            self._set_recovery_phase('reverse', 45)
+        else:
+            self._set_recovery_phase('forward', 70)
+
+        self.get_logger().info(
+            'Recovery: phase={} speed={:.3f} steer={:.3f} front={:.3f} left={:.3f} right={:.3f} steps={}'.format(
+                self._recovery_phase,
+                self._recovery_speed,
+                self._recovery_steer,
+                front_clear,
+                left_clear,
+                right_clear,
+                self._recovery_steps,
+            )
+        )
+
+    def _recovery_control(self):
+        """Return recovery override control until the car is back in safe space."""
+        left_clear = self._left_clearance()
+        right_clear = self._right_clearance()
+        front_clear = self._forward_clearance()
+        near_side = min(left_clear, right_clear)
+
+        if self._recovery_phase == 'reverse':
+            self._recovery_steps -= 1
+            if self._recovery_steps <= 0 or front_clear > 0.60:
+                self._set_recovery_phase('forward', 90)
+            return self._recovery_speed, self._recovery_steer
+
+        if self._recovery_phase == 'forward':
+            self._recovery_steps -= 1
+            if front_clear > 1.20 and near_side > 0.90:
+                self._recovery_phase = None
+                self._recovery_steps = 0
+                self._collision_streak = 0
+                self._last_slowdown_bucket = None
+                self.get_logger().info(
+                    'Recovery complete: front={:.3f} left={:.3f} right={:.3f}'.format(
+                        front_clear, left_clear, right_clear
+                    )
+                )
+                return None
+
+            if self._recovery_steps <= 0:
+                # If we still are not clear, retreat again and keep ownership.
+                self._set_recovery_phase('reverse', 35)
+                self.get_logger().info(
+                    'Recovery reattempt: front={:.3f} left={:.3f} right={:.3f}'.format(
+                        front_clear, left_clear, right_clear
+                    )
+                )
+                return self._recovery_speed, self._recovery_steer
+
+            self._recovery_speed = 0.8
+            return self._recovery_speed, self._recovery_steer
+
+        return None
+
+    def _log_collision_debug(self, safe_pose) -> None:
+        self._collision_count += 1
+        clearance = self._forward_clearance()
+        self.get_logger().warn(
+            'Collision #{count}: pose=({px:.3f}, {py:.3f}, {pt:.3f}) '
+            'speed=({vx:.3f}, {vy:.3f}, {wz:.3f}) '
+            'cmd=(speed={cmd_v:.3f}, steer={cmd_s:.3f}) '
+            'clearance={clr:.3f} streak={streak} -> reset_pose=({sx:.3f}, {sy:.3f}, {st:.3f})'.format(
+                count=self._collision_count,
+                px=self.ego_pose[0],
+                py=self.ego_pose[1],
+                pt=self.ego_pose[2],
+                vx=self.ego_speed[0],
+                vy=self.ego_speed[1],
+                wz=self.ego_speed[2],
+                cmd_v=self.ego_requested_speed,
+                cmd_s=self.ego_steer,
+                clr=clearance,
+                streak=self._collision_streak,
+                sx=safe_pose[0],
+                sy=safe_pose[1],
+                st=safe_pose[2],
+            )
+        )
+
     def drive_timer_callback(self):
         if self.collision_grace_steps > 0:
             self.collision_grace_steps -= 1
             self.done = False
-            # Force zero speed for the first 30 steps so the car doesn't
-            # immediately drive back into the wall after a reset.
-            if self.collision_grace_steps > 20:
-                self.ego_requested_speed = 0.0
-                self.ego_steer = 0.0
         else:
             # Safe — record pose for look-back on future collision
             self._safe_poses[self._safe_pose_idx] = list(self.ego_pose)
             self._safe_pose_idx = (self._safe_pose_idx + 1) % len(self._safe_poses)
 
         if self.done:
-            # Collision — reset to oldest safe pose (0.3 s before the crash)
-            safe_pose = self._safe_poses[self._safe_pose_idx]  # oldest entry in ring buffer
-            self.ego_requested_speed = 0.0
-            self.ego_steer = 0.0
+            collision_xy = np.array(self.ego_pose[:2], dtype=float)
+            if self._last_collision_pose is not None and \
+               np.linalg.norm(collision_xy - self._last_collision_pose) < 0.75:
+                self._collision_streak += 1
+            else:
+                self._collision_streak = 0
+            self._last_collision_pose = collision_xy
+
+            safe_pose, lookback = self._select_safe_pose()
+            self._log_collision_debug(safe_pose)
             if self.has_opp:
                 self.opp_requested_speed = 0.0
                 self.opp_steer = 0.0
-                self.obs, _, self.done, _ = self.env.reset(np.array([safe_pose, self.opp_pose]))
-            else:
-                self.obs, _, self.done, _ = self.env.reset(np.array([safe_pose]))
-            self.collision_grace_steps = 50  # ignore done for 50 steps (0.5 s)
-            self.get_logger().info('Collision — reset to safe pose 0.3 s before crash.')
-            self._update_sim_state()
+            self._reset_env_with_pose(safe_pose, self.opp_pose if self.has_opp else None)
+            self.collision_grace_steps = 60  # ignore done for 60 steps while recovery runs
+            self.get_logger().info(
+                'Collision — reset to safe pose {:.2f} s before crash.'.format(lookback * 0.01)
+            )
+            self._start_recovery()
             return
         # Soft wall avoidance: reduce speed automatically when close to a forward obstacle.
         # This prevents full-speed wall hits that cause the rapid re-collision loop.
         # No hard stop — car always retains some forward mobility so it doesn't freeze near walls.
-        if self.ego_requested_speed > 0:
-            clearance = self._forward_clearance()
-            _SLOW_DIST = 1.5   # m: start slowing
+        recovery_cmd = None
+        if self._recovery_phase is not None:
+            recovery_cmd = self._recovery_control()
+
+        if recovery_cmd is not None:
+            applied_speed, applied_steer = recovery_cmd
+        else:
+            applied_speed = self.ego_requested_speed
+            applied_steer = self.ego_steer
+
+        if recovery_cmd is None and self.ego_requested_speed < 0:
+            # Reverse should stay calmer than forward driving, but not feel
+            # artificially stuck. Keep a moderate steering limit and allow a
+            # meaningfully faster backing speed in open space.
+            applied_steer = max(-0.12, min(0.12, applied_steer))
+            applied_speed = max(applied_speed, -0.45)
+
+        if recovery_cmd is None and self.ego_requested_speed != 0:
+            left_clear = self._left_clearance()
+            right_clear = self._right_clearance()
+            command_is_reverse = self.ego_requested_speed < 0
+            clearance = self._rear_clearance() if command_is_reverse else self._forward_path_clearance(applied_steer)
+            _SLOW_DIST = 1.5 if command_is_reverse else 1.0
+            _STOP_DIST = 0.22 if command_is_reverse else 0.28
             if clearance < _SLOW_DIST:
-                factor = max(0.05, clearance / _SLOW_DIST)   # floor at 5% speed, never zero
-                self.ego_requested_speed *= factor
+                span = max(0.05, _SLOW_DIST - _STOP_DIST)
+                ratio = max(0.0, min(1.0, (clearance - _STOP_DIST) / span))
+                factor = 0.15 + 0.85 * ratio
+                bucket = int(clearance * 5.0)
+                if not command_is_reverse and abs(applied_steer) < 0.05:
+                    side_delta = right_clear - left_clear
+                    near_side = min(left_clear, right_clear)
+                    if near_side < 0.75 and abs(side_delta) > 0.08:
+                        # Bias the car away from the nearest wall when the user
+                        # is asking to go straight but the corridor is closing.
+                        assist = -0.55 * side_delta
+                        applied_steer = max(-0.22, min(0.22, assist))
+                side_delta = right_clear - left_clear
+                if bucket != self._last_slowdown_bucket:
+                    self.get_logger().info(
+                        'Wall slowdown: mode={} clearance={:.3f} m factor={:.3f} cmd_speed={:.3f} '
+                        'left={:.3f} right={:.3f} pose=({:.3f}, {:.3f}, {:.3f}) steer={:.3f}'.format(
+                            'reverse' if command_is_reverse else 'forward',
+                            clearance,
+                            factor,
+                            self.ego_requested_speed,
+                            left_clear,
+                            right_clear,
+                            self.ego_pose[0],
+                            self.ego_pose[1],
+                            self.ego_pose[2],
+                            applied_steer,
+                        )
+                    )
+                    self._last_slowdown_bucket = bucket
+                if not command_is_reverse and abs(applied_steer) > 0.08 and clearance > 0.45:
+                    steering_away_from_near_side = applied_steer * (right_clear - left_clear) < 0.0
+                    if steering_away_from_near_side:
+                        factor = max(factor, 0.78)
+                    else:
+                        factor = max(factor, 0.68)
+                applied_speed = self.ego_requested_speed * factor
+                if command_is_reverse:
+                    applied_speed = max(applied_speed, -0.30)
+                if clearance < 0.22:
+                    if command_is_reverse:
+                        applied_speed = 0.12
+                        applied_steer = 0.0
+                    elif abs(applied_steer) < 0.08:
+                        applied_speed = 0.0
+                        if abs(side_delta) > 0.04:
+                            assist = -0.80 * side_delta
+                            applied_steer = max(-0.26, min(0.26, assist))
+                        else:
+                            applied_speed = -0.18
+            else:
+                self._last_slowdown_bucket = None
 
         if self.ego_drive_published and not self.has_opp:
-            self.obs, _, self.done, _ = self.env.step(np.array([[self.ego_steer, self.ego_requested_speed]]))
-        elif self.ego_drive_published and self.has_opp and self.opp_drive_published:
-            self.obs, _, self.done, _ = self.env.step(np.array([[self.ego_steer, self.ego_requested_speed], [self.opp_steer, self.opp_requested_speed]]))
+            self.obs, _, self.done, _ = self.env.step(np.array([[applied_steer, applied_speed]]))
+        elif self.has_opp and (self.ego_drive_published or self.opp_drive_published):
+            ego_steer = applied_steer if self.ego_drive_published else 0.0
+            ego_speed = applied_speed if self.ego_drive_published else 0.0
+            opp_steer = self.opp_steer if self.opp_drive_published else 0.0
+            opp_speed = self.opp_requested_speed if self.opp_drive_published else 0.0
+            self.obs, _, self.done, _ = self.env.step(
+                np.array([[ego_steer, ego_speed], [opp_steer, opp_speed]])
+            )
         self._update_sim_state()
 
     def timer_callback(self):
@@ -348,14 +635,14 @@ class GymBridge(Node):
             self.opp_scan = list(self.obs['scans'][1])
             self.opp_pose[0] = self.obs['poses_x'][1]
             self.opp_pose[1] = self.obs['poses_y'][1]
-            self.opp_pose[2] = self.obs['poses_theta'][1]
+            self.opp_pose[2] = _normalize_angle(self.obs['poses_theta'][1])
             self.opp_speed[0] = self.obs['linear_vels_x'][1]
             self.opp_speed[1] = self.obs['linear_vels_y'][1]
             self.opp_speed[2] = self.obs['ang_vels_z'][1]
 
         self.ego_pose[0] = self.obs['poses_x'][0]
         self.ego_pose[1] = self.obs['poses_y'][0]
-        self.ego_pose[2] = self.obs['poses_theta'][0]
+        self.ego_pose[2] = _normalize_angle(self.obs['poses_theta'][0])
         self.ego_speed[0] = self.obs['linear_vels_x'][0]
         self.ego_speed[1] = self.obs['linear_vels_y'][0]
         self.ego_speed[2] = self.obs['ang_vels_z'][0]

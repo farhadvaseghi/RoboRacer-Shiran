@@ -21,8 +21,14 @@ setup(
     entry_points={
         'console_scripts': [
             'lidar_processor_node = roboracer_perception.lidar_processor:main',
-            'camera_processor_node = roboracer_perception.camera_processor_node:main',
-            'perception_fusion_node = roboracer_perception.perception_fusion_node:main',
+            'camera_processor_node = roboracer_perception.camera_processor:main',
+            'perception_fusion_node = roboracer_perception.perception_fusion:main',
+            'cone_tracker_node = roboracer_perception.cone_tracker:main',
+            'cone_map_builder_node = roboracer_perception.cone_map_builder:main',
+            'teleop_key = roboracer_perception.teleop_key:main',
+            'ackermann_to_twist = roboracer_perception.ackermann_to_twist:main',
+            'ackermann_to_autodrive = roboracer_perception.ackermann_to_autodrive:main',
+            'sim_camera = roboracer_perception.sim_camera:main',
         ],
     },
 )

@@ -39,10 +39,16 @@ def generate_launch_description():
                     '(e.g. when another node launches its own RViz).'
     ))
 
+    # Keep the current oval track as the default and allow switching to
+    # alternate maps without editing this file.
+    map_name = os.environ.get('ROBORACER_MAP_NAME', 'oval_track')
+
+    config_name = os.environ.get('ROBORACER_SIM_CONFIG_NAME', 'sim.yaml')
+
     config = os.path.join(
         get_package_share_directory('f1tenth_gym_ros'),
         'config',
-        'sim.yaml'
+        config_name
         )
     config_dict = yaml.safe_load(open(config, 'r'))
     has_opp = config_dict['bridge']['ros__parameters']['num_agent'] > 1
@@ -53,7 +59,7 @@ def generate_launch_description():
     map_path = os.path.join(
         get_package_share_directory('roboracer_perception'),
         'maps',
-        'oval_track'
+        map_name
     )
 
     bridge_node = Node(
