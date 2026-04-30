@@ -24,15 +24,14 @@ bridge:
     # Dedicated moving-obstacle scenario: enable the second simulator agent.
     num_agent: 2
 
-    # Ego starts at the usual track start.
+    # Start both cars side by side like a race grid: same forward position,
+    # small lateral separation, same heading.
     sx: 0.0
-    sy: 0.0
+    sy: -0.6
     stheta: 0.0
 
-    # Opponent starts near the ego car but with a lateral offset so both cars
-    # are visible together at launch without overlapping.
-    sx1: 1.5
-    sy1: 0.8
+    sx1: 0.0
+    sy1: 0.6
     stheta1: 0.0
 
     kb_teleop: False

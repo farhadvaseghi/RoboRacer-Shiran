@@ -122,8 +122,8 @@ This launches a separate two-agent scenario.
 
 Current start poses in [sim_moving_obstacle.yaml](/home/farhad/roboracer_ws/src/roboracer_perception/patches/sim_moving_obstacle.yaml:1):
 
-- ego: `(0.0, 0.0, 0.0)`
-- opponent: `(1.5, 0.8, 0.0)`
+- ego: `(0.0, -0.6, 0.0)`
+- opponent: `(0.0, 0.6, 0.0)`
 
 ## Teleop
 
