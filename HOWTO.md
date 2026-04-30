@@ -60,7 +60,7 @@ bash setup_workspace.sh
 The setup script:
 - regenerates the custom map assets
 - symlinks the vendored `f1tenth_gym_ros` and `f1tenth_gym` from `deps/` into `src/`
-- copies the patched launch/config/rviz/bridge files into `f1tenth_gym_ros`
+- copies the extra scenario launch/config/rviz files into `f1tenth_gym_ros`
 - installs `f110_gym` via pip
 - builds the full workspace
 

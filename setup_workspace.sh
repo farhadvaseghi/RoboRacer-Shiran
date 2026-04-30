@@ -4,7 +4,7 @@
 # What this does:
 #   1. Regenerates the local map assets used by the custom scenarios
 #   2. Symlinks the vendored f1tenth_gym_ros and f1tenth_gym from deps/ into src/
-#   3. Copies patched launch/config/rviz/bridge files into f1tenth_gym_ros
+#   3. Copies extra scenario launch/config/rviz files into f1tenth_gym_ros
 #   4. Installs f110_gym via pip (required — colcon cannot build it)
 #   5. Sources ROS if available and builds the workspace
 
@@ -47,14 +47,12 @@ for dep in f1tenth_gym_ros f1tenth_gym; do
     fi
 done
 
-# ── 2. Apply patches to f1tenth_gym_ros ──────────────────────────────────────
+# ── 2. Copy extra scenario files into f1tenth_gym_ros ───────────────────────
 
-echo "[2/4] Applying patches to f1tenth_gym_ros..."
+echo "[2/4] Copying extra scenario files into f1tenth_gym_ros..."
 
-cp "$PATCHES/sim.yaml"              "$SRC/f1tenth_gym_ros/config/sim.yaml"
 cp "$PATCHES/sim_moving_obstacle.yaml" \
    "$SRC/f1tenth_gym_ros/config/sim_moving_obstacle.yaml"
-cp "$PATCHES/gym_bridge_launch.py"  "$SRC/f1tenth_gym_ros/launch/gym_bridge_launch.py"
 cp "$PATCHES/gym_bridge.rviz"       "$SRC/f1tenth_gym_ros/launch/gym_bridge.rviz"
 cp "$PATCHES/gym_bridge_solid.launch.py" \
    "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid.launch.py"
@@ -62,16 +60,12 @@ cp "$PATCHES/gym_bridge_solid_obstacles.launch.py" \
    "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_obstacles.launch.py"
 cp "$PATCHES/gym_bridge_solid_moving_obstacle.launch.py" \
    "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_moving_obstacle.launch.py"
-cp "$PATCHES/gym_bridge.py"         "$SRC/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py"
 
-echo "  sim.yaml            -> f1tenth_gym_ros/config/"
 echo "  sim_moving_obstacle.yaml -> f1tenth_gym_ros/config/"
-echo "  gym_bridge_launch.py -> f1tenth_gym_ros/launch/"
 echo "  gym_bridge.rviz     -> f1tenth_gym_ros/launch/"
 echo "  gym_bridge_solid.launch.py -> f1tenth_gym_ros/launch/"
 echo "  gym_bridge_solid_obstacles.launch.py -> f1tenth_gym_ros/launch/"
 echo "  gym_bridge_solid_moving_obstacle.launch.py -> f1tenth_gym_ros/launch/"
-echo "  gym_bridge.py       -> f1tenth_gym_ros/f1tenth_gym_ros/"
 
 # ── 3. Install Python dependencies ────────────────────────────────────────────
 
