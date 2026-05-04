@@ -82,6 +82,14 @@ install(PROGRAMS roboracer_perception/moving_obstacle_controller.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME moving_obstacle_controller
 )
+install(PROGRAMS roboracer_perception/solid_wall_visualizer.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME solid_wall_visualizer
+)
+install(PROGRAMS roboracer_perception/solid_wall_scan_highlighter.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME solid_wall_scan_highlighter
+)
 
 # ---------------------------------------------------------------------------
 # Launch, config, and simulation asset files

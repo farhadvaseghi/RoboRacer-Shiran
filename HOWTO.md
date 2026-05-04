@@ -17,18 +17,42 @@ The base `f1tenth_gym_ros` simulator was extended with:
   - [tools/generate_solid_oval_obstacles_map.py](/home/farhad/roboracer_ws/src/roboracer_perception/tools/generate_solid_oval_obstacles_map.py:1)
 - new scenario launch files:
   - [patches/gym_bridge_solid.launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_solid.launch.py:1)
+  - [patches/gym_bridge_solid_cylinder.launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_solid_cylinder.launch.py:1)
   - [patches/gym_bridge_solid_obstacles.launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_solid_obstacles.launch.py:1)
+  - [patches/gym_bridge_solid_obstacles_cylinder.launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_solid_obstacles_cylinder.launch.py:1)
   - [patches/gym_bridge_solid_moving_obstacle.launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_solid_moving_obstacle.launch.py:1)
+  - [patches/gym_bridge_solid_moving_obstacle_cylinder.launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_solid_moving_obstacle_cylinder.launch.py:1)
+  - [patches/gym_bridge_solid_static_moving_obstacles.launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_solid_static_moving_obstacles.launch.py:1)
+  - [patches/gym_bridge_solid_static_moving_obstacles_cylinder.launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_solid_static_moving_obstacles_cylinder.launch.py:1)
 - a dedicated two-agent simulator config:
   - [patches/sim_moving_obstacle.yaml](/home/farhad/roboracer_ws/src/roboracer_perception/patches/sim_moving_obstacle.yaml:1)
 - an autonomous controller for the second vehicle:
   - [roboracer_perception/moving_obstacle_controller.py](/home/farhad/roboracer_ws/src/roboracer_perception/roboracer_perception/moving_obstacle_controller.py:1)
 - a patched RViz config that shows both ego and opponent in the moving-obstacle scenario:
   - [patches/gym_bridge.rviz](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge.rviz:1)
+- cylinder wall visualization support:
+  - [roboracer_perception/solid_wall_visualizer.py](/home/farhad/roboracer_ws/src/roboracer_perception/roboracer_perception/solid_wall_visualizer.py:1)
+  - [roboracer_perception/solid_wall_geometry.py](/home/farhad/roboracer_ws/src/roboracer_perception/roboracer_perception/solid_wall_geometry.py:1)
+- wall-hit LiDAR highlighting for cylinder scenarios:
+  - [roboracer_perception/solid_wall_scan_highlighter.py](/home/farhad/roboracer_ws/src/roboracer_perception/roboracer_perception/solid_wall_scan_highlighter.py:1)
 - updated automation in [setup_workspace.sh](/home/farhad/roboracer_ws/src/roboracer_perception/setup_workspace.sh:1)
   - regenerates the map variants
   - copies patched launch/config/rviz files
   - rebuilds the workspace
+
+## Current Track Geometry
+
+The current solid-wall map is wider than the original 2.0 m lane and now gives
+extra room on the inner side of the straights and turns.
+
+- straight width: `2.85 m`
+- curve width: `2.90 m`
+
+This geometry is shared by:
+
+- `solid_oval_track`
+- `solid_oval_track_obstacles`
+- the cylinder-wall marker geometry used in RViz
 
 ## Prerequisites
 
@@ -79,6 +103,9 @@ source ~/roboracer_ws/install/setup.bash
 
 ## Available Launch Files
 
+The project now has four scenario families, each with a flat-wall version and
+an optional cylinder-wall visualization version.
+
 ### Default Oval
 
 ```bash
@@ -95,6 +122,20 @@ ros2 launch f1tenth_gym_ros gym_bridge_solid.launch.py
 
 Uses `solid_oval_track`.
 
+### Solid Walls Only With Cylinder Wall Visualization
+
+```bash
+ros2 launch f1tenth_gym_ros gym_bridge_solid_cylinder.launch.py
+```
+
+Uses the same `solid_oval_track` collision map, but adds raised horizontal
+cylinder wall markers in RViz.
+
+Important note:
+
+- collision is still 2-D and still comes from the occupancy-grid map
+- the cylinders are a visualization overlay, not true 3-D collision objects
+
 ### Solid Walls + Static Obstacles
 
 ```bash
@@ -108,6 +149,15 @@ Static obstacles currently added:
 - lower half: center `(6.5, 0.55)`, radius `0.40 m`
 - upper half: center `(13.5, 4.45)`, radius `0.40 m`
 
+### Solid Walls + Static Obstacles With Cylinder Wall Visualization
+
+```bash
+ros2 launch f1tenth_gym_ros gym_bridge_solid_obstacles_cylinder.launch.py
+```
+
+Uses the same `solid_oval_track_obstacles` collision map, plus raised
+horizontal cylinder wall markers in RViz.
+
 ### Solid Walls + Moving Obstacle Vehicle
 
 ```bash
@@ -120,10 +170,52 @@ This launches a separate two-agent scenario.
 - The second vehicle is controlled automatically
 - RViz shows both cars by default
 
+### Solid Walls + Moving Obstacle Vehicle With Cylinder Wall Visualization
+
+```bash
+ros2 launch f1tenth_gym_ros gym_bridge_solid_moving_obstacle_cylinder.launch.py
+```
+
+Uses the same moving-obstacle scenario, plus raised horizontal cylinder wall
+markers in RViz.
+
 Current start poses in [sim_moving_obstacle.yaml](/home/farhad/roboracer_ws/src/roboracer_perception/patches/sim_moving_obstacle.yaml:1):
 
 - ego: `(0.0, -0.6, 0.0)`
 - opponent: `(0.0, 0.6, 0.0)`
+
+Opponent behavior in the current controller:
+
+- follows the oval autonomously
+- uses a smoother bypass trajectory around the static obstacles when they exist
+- slows slightly while crossing the bypass zone to avoid abrupt steering
+
+### Solid Walls + Static And Dynamic Obstacles
+
+```bash
+ros2 launch f1tenth_gym_ros gym_bridge_solid_static_moving_obstacles.launch.py
+```
+
+Uses `solid_oval_track_obstacles` and also starts the moving obstacle
+controller, so the scenario contains both the static map obstacles and the
+dynamic opponent vehicle.
+
+### Solid Walls + Static And Dynamic Obstacles With Cylinder Wall Visualization
+
+```bash
+ros2 launch f1tenth_gym_ros gym_bridge_solid_static_moving_obstacles_cylinder.launch.py
+```
+
+Uses the same combined static-plus-dynamic obstacle scenario, plus raised
+horizontal cylinder wall markers and wall-hit LiDAR highlighting.
+
+For cylinder scenarios, RViz also shows:
+
+- `/visualization/solid_wall_markers`
+- `/visualization/solid_wall_hit_markers`
+
+The wall-hit overlay highlights scan returns that land on the cylinder-wall
+geometry using elevated red points and red beam segments.
 
 ## Teleop
 
@@ -188,6 +280,11 @@ Moving-obstacle scenario adds:
 - `/opp_racecar/odom`
 - `/opp_scan`
 
+Cylinder-wall scenarios also add:
+
+- `/visualization/solid_wall_markers`
+- `/visualization/solid_wall_hit_markers`
+
 ## Bridge Behavior Notes
 
 The patched bridge includes:
@@ -232,6 +329,16 @@ bash setup_workspace.sh
 
 Run `setup_workspace.sh` again so the vendored simulator symlinks and copied patch files are refreshed.
 
+**Cylinder walls are visible but do not collide like 3-D objects**
+
+That is expected. The simulator still uses a 2-D occupancy-grid map for
+collision. The cylinders are an RViz overlay only.
+
+**Wall-hit highlighting only appears in the cylinder scenarios**
+
+That is expected. The highlighting node is only launched by the
+`*_cylinder.launch.py` files.
+
 **Teleop does nothing in the moving-obstacle scenario**
 
 Use the dedicated moving-obstacle launch, not the one-agent launches:
@@ -243,6 +350,11 @@ ros2 launch f1tenth_gym_ros gym_bridge_solid_moving_obstacle.launch.py
 **Map/launch edits have no effect**
 
 Run `bash setup_workspace.sh` again. It recopies the patched files into `f1tenth_gym_ros`.
+
+**Combined static + dynamic scenario feels different from the moving-only scenario**
+
+That is expected. The opponent controller uses a different path shape in the
+static-obstacle regions so it can go around the two fixed obstacles smoothly.
 
 **Python changes have no effect**
 

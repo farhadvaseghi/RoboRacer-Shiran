@@ -34,15 +34,15 @@ for dep in f1tenth_gym_ros f1tenth_gym; do
     source="$DEPS/$dep"
 
     if [ -L "$target" ]; then
-        echo "[1/3] $dep — symlink already exists, updating..."
+        echo "[1/4] $dep — symlink already exists, updating..."
         ln -sfn "$source" "$target"
     elif [ -d "$target" ]; then
-        echo "[1/3] WARNING: $target exists as a real directory (not a symlink)."
+        echo "[1/4] WARNING: $target exists as a real directory (not a symlink)."
         echo "      Remove it manually and re-run this script to use the vendored version:"
         echo "        rm -rf $target"
         echo "        bash setup_workspace.sh"
     else
-        echo "[1/3] Symlinking $dep..."
+        echo "[1/4] Symlinking $dep..."
         ln -sfn "$source" "$target"
     fi
 done
@@ -56,16 +56,31 @@ cp "$PATCHES/sim_moving_obstacle.yaml" \
 cp "$PATCHES/gym_bridge.rviz"       "$SRC/f1tenth_gym_ros/launch/gym_bridge.rviz"
 cp "$PATCHES/gym_bridge_solid.launch.py" \
    "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid.launch.py"
+cp "$PATCHES/gym_bridge_solid_cylinder.launch.py" \
+   "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_cylinder.launch.py"
 cp "$PATCHES/gym_bridge_solid_obstacles.launch.py" \
    "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_obstacles.launch.py"
+cp "$PATCHES/gym_bridge_solid_obstacles_cylinder.launch.py" \
+   "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_obstacles_cylinder.launch.py"
 cp "$PATCHES/gym_bridge_solid_moving_obstacle.launch.py" \
    "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_moving_obstacle.launch.py"
+cp "$PATCHES/gym_bridge_solid_moving_obstacle_cylinder.launch.py" \
+   "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_moving_obstacle_cylinder.launch.py"
+cp "$PATCHES/gym_bridge_solid_static_moving_obstacles.launch.py" \
+   "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_static_moving_obstacles.launch.py"
+cp "$PATCHES/gym_bridge_solid_static_moving_obstacles_cylinder.launch.py" \
+   "$SRC/f1tenth_gym_ros/launch/gym_bridge_solid_static_moving_obstacles_cylinder.launch.py"
 
 echo "  sim_moving_obstacle.yaml -> f1tenth_gym_ros/config/"
 echo "  gym_bridge.rviz     -> f1tenth_gym_ros/launch/"
 echo "  gym_bridge_solid.launch.py -> f1tenth_gym_ros/launch/"
+echo "  gym_bridge_solid_cylinder.launch.py -> f1tenth_gym_ros/launch/"
 echo "  gym_bridge_solid_obstacles.launch.py -> f1tenth_gym_ros/launch/"
+echo "  gym_bridge_solid_obstacles_cylinder.launch.py -> f1tenth_gym_ros/launch/"
 echo "  gym_bridge_solid_moving_obstacle.launch.py -> f1tenth_gym_ros/launch/"
+echo "  gym_bridge_solid_moving_obstacle_cylinder.launch.py -> f1tenth_gym_ros/launch/"
+echo "  gym_bridge_solid_static_moving_obstacles.launch.py -> f1tenth_gym_ros/launch/"
+echo "  gym_bridge_solid_static_moving_obstacles_cylinder.launch.py -> f1tenth_gym_ros/launch/"
 
 # ── 3. Install Python dependencies ────────────────────────────────────────────
 
