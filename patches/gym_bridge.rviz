@@ -36,11 +36,11 @@ Visualization Manager:
       Name: Grid
       Normal Cell Count: 0
       Offset:
-        X: 0
-        Y: 0
+        X: 10
+        Y: 2.5
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 36
       Reference Frame: <Fixed Frame>
       Value: true
     - Alpha: 0.699999988079071
@@ -63,6 +63,30 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /map_updates
       Use Timestamp: false
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: SolidWalls
+      Namespaces:
+        solid_walls: true
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /visualization/solid_wall_markers
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: SolidWallHits
+      Namespaces:
+        solid_wall_hits: true
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /visualization/solid_wall_hit_markers
       Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true

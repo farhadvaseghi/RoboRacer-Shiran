@@ -14,7 +14,6 @@ def generate_launch_description():
         'launch',
         'perception.launch.py',
     )
-
     return LaunchDescription([
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(perception_launch),

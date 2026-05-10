@@ -363,8 +363,8 @@ class GymBridge(Node):
         self._recovery_phase = phase
         self._recovery_steps = steps
         if phase == 'reverse':
-            self._recovery_speed = -0.8
-            self._recovery_steer = -self._recovery_escape_steer
+            self._recovery_speed = -0.45
+            self._recovery_steer = 0.0
         else:
             self._recovery_speed = 0.8
             self._recovery_steer = self._recovery_escape_steer
@@ -518,10 +518,11 @@ class GymBridge(Node):
 
         if recovery_cmd is None and self.ego_requested_speed < 0:
             # Reverse should stay calmer than forward driving, but not feel
-            # artificially stuck. Keep a moderate steering limit and allow a
-            # meaningfully faster backing speed in open space.
-            applied_steer = max(-0.12, min(0.12, applied_steer))
-            applied_speed = max(applied_speed, -0.45)
+            # artificially stuck. Reverse steering is intentionally tiny because
+            # the simulator dynamics become unstable with larger reverse turns.
+            applied_steer = max(-0.030, min(0.030, applied_steer))
+            reverse_turning = abs(applied_steer) > 0.001
+            applied_speed = max(applied_speed, -0.25 if reverse_turning else -0.80)
 
         if recovery_cmd is None and self.ego_requested_speed != 0:
             left_clear = self._left_clearance()
@@ -529,7 +530,7 @@ class GymBridge(Node):
             command_is_reverse = self.ego_requested_speed < 0
             clearance = self._rear_clearance() if command_is_reverse else self._forward_path_clearance(applied_steer)
             _SLOW_DIST = 1.5 if command_is_reverse else 1.0
-            _STOP_DIST = 0.22 if command_is_reverse else 0.28
+            _STOP_DIST = 0.55 if command_is_reverse else 0.28
             if clearance < _SLOW_DIST:
                 span = max(0.05, _SLOW_DIST - _STOP_DIST)
                 ratio = max(0.0, min(1.0, (clearance - _STOP_DIST) / span))
@@ -569,10 +570,13 @@ class GymBridge(Node):
                         factor = max(factor, 0.68)
                 applied_speed = self.ego_requested_speed * factor
                 if command_is_reverse:
-                    applied_speed = max(applied_speed, -0.30)
+                    applied_speed = max(applied_speed, -0.35)
+                    if clearance < _STOP_DIST:
+                        applied_speed = 0.0
+                        applied_steer = 0.0
                 if clearance < 0.22:
                     if command_is_reverse:
-                        applied_speed = 0.12
+                        applied_speed = 0.0
                         applied_steer = 0.0
                     elif abs(applied_steer) < 0.08:
                         applied_speed = 0.0
@@ -594,6 +598,14 @@ class GymBridge(Node):
             self.obs, _, self.done, _ = self.env.step(
                 np.array([[ego_steer, ego_speed], [opp_steer, opp_speed]])
             )
+        if not (
+            np.all(np.isfinite(self.obs['poses_x']))
+            and np.all(np.isfinite(self.obs['poses_y']))
+            and np.all(np.isfinite(self.obs['poses_theta']))
+        ):
+            self.get_logger().warn('Simulator returned non-finite pose; resetting to start pose.')
+            self._reset_env_with_pose(self.ego_start_pose, self.opp_pose if self.has_opp else None)
+            return
         self._update_sim_state()
 
     def timer_callback(self):

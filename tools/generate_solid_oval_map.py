@@ -6,10 +6,10 @@ vehicle scale remain valid, but the lane boundaries are continuous occupied
 walls instead of discrete cone footprints.
 
 Compared with the first solid-wall version, this variant adds extra clearance:
-  - straights are widened slightly on both sides
-  - turns get additional radial margin, which is where the car needs the most
-    room while steering and where the simulator was most likely to trip its
-    collision recovery logic
+  - straights are widened, with more room on the inner side
+  - turns get additional radial margin, especially on the inner pass
+  - this gives the moving obstacle and ego more room in overtaking and
+    static-obstacle scenarios without changing the overall oval layout
 """
 
 import os
@@ -32,15 +32,17 @@ STRAIGHT_X_MIN = 0.0
 STRAIGHT_X_MAX = 20.0
 
 # Additional room beyond the original 2.0 m lane.
-STRAIGHT_MARGIN = 0.35
-CURVE_MARGIN = 0.35
+OUTER_STRAIGHT_MARGIN = 0.35
+INNER_STRAIGHT_MARGIN = 0.50
+OUTER_CURVE_MARGIN = 0.35
+INNER_CURVE_MARGIN = 0.55
 
-INNER_R = BASE_INNER_R - CURVE_MARGIN
-OUTER_R = BASE_OUTER_R + CURVE_MARGIN
-BOTTOM_Y_MIN = -1.0 - STRAIGHT_MARGIN
-BOTTOM_Y_MAX = 1.0 + STRAIGHT_MARGIN
-TOP_Y_MIN = 4.0 - STRAIGHT_MARGIN
-TOP_Y_MAX = 6.0 + STRAIGHT_MARGIN
+INNER_R = BASE_INNER_R - INNER_CURVE_MARGIN
+OUTER_R = BASE_OUTER_R + OUTER_CURVE_MARGIN
+BOTTOM_Y_MIN = -1.0 - OUTER_STRAIGHT_MARGIN
+BOTTOM_Y_MAX = 1.0 + INNER_STRAIGHT_MARGIN
+TOP_Y_MIN = 4.0 - INNER_STRAIGHT_MARGIN
+TOP_Y_MAX = 6.0 + OUTER_STRAIGHT_MARGIN
 
 def pixel_to_world(col: int, row: int) -> tuple[float, float]:
     """Return the world coordinates at the center of a pixel."""

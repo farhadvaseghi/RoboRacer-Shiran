@@ -94,6 +94,14 @@ install(PROGRAMS roboracer_perception/tube_track/perception_fusion_pca.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME perception_fusion_pca_node
 )
+install(PROGRAMS roboracer_perception/solid_wall_visualizer.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME solid_wall_visualizer
+)
+install(PROGRAMS roboracer_perception/solid_wall_scan_highlighter.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME solid_wall_scan_highlighter
+)
 
 # ---------------------------------------------------------------------------
 # Launch, config, and simulation asset files
