@@ -21,101 +21,106 @@
 # SOFTWARE.
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
-from launch.substitutions import Command
 from ament_index_python.packages import get_package_share_directory
 import os
 import yaml
 
-def generate_launch_description():
-    ld = LaunchDescription()
 
-    ld.add_action(DeclareLaunchArgument(
-        'use_rviz', default_value='true',
-        description='Set to false to suppress the built-in RViz instance '
-                    '(e.g. when another node launches its own RViz).'
-    ))
-
-    # Keep the current oval track as the default and allow switching to
-    # alternate maps without editing this file.
-    map_name = os.environ.get('ROBORACER_MAP_NAME', 'oval_track')
-
-    config_name = os.environ.get('ROBORACER_SIM_CONFIG_NAME', 'sim.yaml')
+def _make_nodes(context, *args, **kwargs):
+    map_name = LaunchConfiguration('map_name').perform(context)
+    config_name = LaunchConfiguration('config_name').perform(context)
 
     config = os.path.join(
         get_package_share_directory('f1tenth_gym_ros'),
         'config',
-        config_name
-        )
+        config_name,
+    )
     config_dict = yaml.safe_load(open(config, 'r'))
     has_opp = config_dict['bridge']['ros__parameters']['num_agent'] > 1
-    teleop = config_dict['bridge']['ros__parameters']['kb_teleop']
 
-    # Portable map path — resolved from the installed package share directory so
-    # it works on any machine regardless of username or workspace location.
     map_path = os.path.join(
         get_package_share_directory('roboracer_perception'),
         'maps',
-        map_name
+        map_name,
     )
+
+    f1tenth_share = get_package_share_directory('f1tenth_gym_ros')
 
     bridge_node = Node(
         package='f1tenth_gym_ros',
         executable='gym_bridge',
         name='bridge',
-        parameters=[config, {'map_path': map_path}]
+        parameters=[config, {'map_path': map_path}],
     )
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
         name='rviz',
-        arguments=['-d', os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'launch', 'gym_bridge.rviz')],
+        arguments=['-d', os.path.join(f1tenth_share, 'launch', 'gym_bridge.rviz')],
         condition=IfCondition(LaunchConfiguration('use_rviz')),
     )
     map_server_node = Node(
         package='nav2_map_server',
         executable='map_server',
-        parameters=[{'yaml_filename': map_path + '.yaml'},
-                    {'topic': 'map'},
-                    {'frame_id': 'map'},
-                    {'output': 'screen'},
-                    {'use_sim_time': False}]
+        parameters=[
+            {'yaml_filename': map_path + '.yaml'},
+            {'topic': 'map'},
+            {'frame_id': 'map'},
+            {'output': 'screen'},
+            {'use_sim_time': False},
+        ],
     )
     nav_lifecycle_node = Node(
         package='nav2_lifecycle_manager',
         executable='lifecycle_manager',
         name='lifecycle_manager_localization',
         output='screen',
-        parameters=[{'use_sim_time': False},
-                    {'autostart': True},
-                    {'node_names': ['map_server']},
-                    {'bond_timeout': 4.0}]
+        parameters=[
+            {'use_sim_time': False},
+            {'autostart': True},
+            {'node_names': ['map_server']},
+            {'bond_timeout': 4.0},
+        ],
     )
     ego_robot_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         name='ego_robot_state_publisher',
-        parameters=[{'robot_description': Command(['xacro ', os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'launch', 'ego_racecar.xacro')])}],
-        remappings=[('/robot_description', 'ego_robot_description')]
+        parameters=[{'robot_description': Command(
+            ['xacro ', os.path.join(f1tenth_share, 'launch', 'ego_racecar.xacro')]
+        )}],
+        remappings=[('/robot_description', 'ego_robot_description')],
     )
     opp_robot_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
         name='opp_robot_state_publisher',
-        parameters=[{'robot_description': Command(['xacro ', os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'launch', 'opp_racecar.xacro')])}],
-        remappings=[('/robot_description', 'opp_robot_description')]
+        parameters=[{'robot_description': Command(
+            ['xacro ', os.path.join(f1tenth_share, 'launch', 'opp_racecar.xacro')]
+        )}],
+        remappings=[('/robot_description', 'opp_robot_description')],
     )
 
-    # finalize
-    ld.add_action(rviz_node)
-    ld.add_action(bridge_node)
-    ld.add_action(nav_lifecycle_node)
-    ld.add_action(map_server_node)
-    ld.add_action(ego_robot_publisher)
+    nodes = [rviz_node, bridge_node, nav_lifecycle_node, map_server_node, ego_robot_publisher]
     if has_opp:
-        ld.add_action(opp_robot_publisher)
+        nodes.append(opp_robot_publisher)
+    return nodes
 
-    return ld
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            'map_name', default_value='oval_track',
+            description='Map name (stem, no extension) from roboracer_perception/maps/'),
+        DeclareLaunchArgument(
+            'config_name', default_value='sim.yaml',
+            description='Sim config filename from f1tenth_gym_ros/config/'),
+        DeclareLaunchArgument(
+            'use_rviz', default_value='true',
+            description='Set to false to suppress the built-in RViz instance.'),
+        OpaqueFunction(function=_make_nodes),
+    ])

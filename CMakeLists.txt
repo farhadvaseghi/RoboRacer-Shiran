@@ -82,6 +82,18 @@ install(PROGRAMS roboracer_perception/moving_obstacle_controller.py
   DESTINATION lib/${PROJECT_NAME}
   RENAME moving_obstacle_controller
 )
+install(PROGRAMS roboracer_perception/tube_track/lidar_processor_pca.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME lidar_processor_pca_node
+)
+install(PROGRAMS roboracer_perception/tube_track/sim_camera_tubes.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME sim_camera_tubes_node
+)
+install(PROGRAMS roboracer_perception/tube_track/perception_fusion_pca.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME perception_fusion_pca_node
+)
 
 # ---------------------------------------------------------------------------
 # Launch, config, and simulation asset files

@@ -29,6 +29,10 @@ setup(
             'ackermann_to_twist = roboracer_perception.ackermann_to_twist:main',
             'ackermann_to_autodrive = roboracer_perception.ackermann_to_autodrive:main',
             'sim_camera = roboracer_perception.sim_camera:main',
+            # Tube-track nodes (tube boundaries + PCA-based object detection)
+            'lidar_processor_pca_node = roboracer_perception.tube_track.lidar_processor_pca:main',
+            'sim_camera_tubes_node    = roboracer_perception.tube_track.sim_camera_tubes:main',
+            'perception_fusion_pca_node = roboracer_perception.tube_track.perception_fusion_pca:main',
         ],
     },
 )

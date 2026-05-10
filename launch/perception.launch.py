@@ -56,6 +56,18 @@ def generate_launch_description():
         ),
     )
 
+    declare_map_name = DeclareLaunchArgument(
+        'map_name',
+        default_value='oval_track',
+        description='Map name (stem, no extension) from roboracer_perception/maps/.',
+    )
+
+    declare_config_name = DeclareLaunchArgument(
+        'config_name',
+        default_value='sim.yaml',
+        description='Sim config filename from f1tenth_gym_ros/config/.',
+    )
+
     # ------------------------------------------------------------------
     # Static TF publishers — always present (sim and real)
     #
@@ -153,7 +165,11 @@ def generate_launch_description():
                 'gym_bridge_launch.py',
             ])
         ]),
-        launch_arguments={'use_rviz': 'false'}.items(),
+        launch_arguments={
+                'use_rviz': 'false',
+                'map_name': LaunchConfiguration('map_name'),
+                'config_name': LaunchConfiguration('config_name'),
+            }.items(),
         condition=IfCondition(sim),
     )
 
@@ -240,6 +256,8 @@ def generate_launch_description():
     # ------------------------------------------------------------------
     return LaunchDescription([
         declare_sim,
+        declare_map_name,
+        declare_config_name,
 
         # LiDAR pipeline
         lidar_processor,

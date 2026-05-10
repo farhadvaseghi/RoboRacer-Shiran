@@ -4,16 +4,16 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
+from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    base_launch = os.path.join(
-        get_package_share_directory('f1tenth_gym_ros'),
+    perception_launch = os.path.join(
+        get_package_share_directory('roboracer_perception'),
         'launch',
-        'gym_bridge_launch.py',
+        'perception.launch.py',
     )
 
     obstacle_controller = Node(
@@ -24,8 +24,13 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        SetEnvironmentVariable('ROBORACER_MAP_NAME', 'solid_oval_track'),
-        SetEnvironmentVariable('ROBORACER_SIM_CONFIG_NAME', 'sim_moving_obstacle.yaml'),
-        IncludeLaunchDescription(PythonLaunchDescriptionSource(base_launch)),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(perception_launch),
+            launch_arguments={
+                'sim': 'true',
+                'map_name': 'solid_oval_track',
+                'config_name': 'sim_moving_obstacle.yaml',
+            }.items(),
+        ),
         obstacle_controller,
     ])
