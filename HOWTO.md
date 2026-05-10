@@ -7,7 +7,7 @@ This document explains how to run the simulator and explicitly records the modif
 The base `f1tenth_gym_ros` simulator was extended with:
 
 - portable map/config selection in [patches/gym_bridge_launch.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge_launch.py:1)
-- patched simulator bridge logic in [patches/gym_bridge.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge.py:1)
+- patched simulator bridge logic in the vendored [deps/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py](/home/farhad/roboracer_ws/src/roboracer_perception/deps/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py:1)
   - collision recovery from older safe poses
   - wall/obstacle slowdown behavior
   - safer reverse behavior
@@ -39,6 +39,24 @@ The base `f1tenth_gym_ros` simulator was extended with:
   - regenerates the map variants
   - copies patched launch/config/rviz files
   - rebuilds the workspace
+
+## Vendored Dependencies
+
+This repository intentionally tracks the modified simulator dependencies as
+regular folders:
+
+- [deps/f1tenth_gym](/home/farhad/roboracer_ws/src/roboracer_perception/deps/f1tenth_gym:1)
+- [deps/f1tenth_gym_ros](/home/farhad/roboracer_ws/src/roboracer_perception/deps/f1tenth_gym_ros:1)
+
+Do not clone separate upstream copies over these directories. The local
+versions contain compatibility and behavior changes needed by this project,
+including the patched bridge, scenario launches, RViz config, map handling,
+collision recovery, and teleop/reverse-driving behavior.
+
+The dependency directories must not contain their own internal `.git`
+directories. They are vendored so the main RoboRacer repository tracks their
+source files directly and teammates get the same working simulator after a
+normal clone.
 
 ## Current Track Geometry
 
@@ -236,6 +254,14 @@ Controls:
 
 Teleop publishes on `/drive`. In the moving-obstacle scenario, you do not control the opponent.
 
+Important note:
+
+- combined forward inputs like `W`+`A` and `W`+`D` are supported
+- combined reverse inputs like `S`+`A` and `S`+`D` are also supported
+- forward steering is slightly softer than before: `+/-0.18 rad`
+- reverse steering is deliberately capped in the bridge to `+/-0.030 rad` to
+  allow backing turns without returning to the earlier spin/stuck behavior
+
 ## Optional Camera Tools
 
 Fake camera:
@@ -295,7 +321,7 @@ The patched bridge includes:
 - steer-aware forward slowdown path
 - conservative reverse handling
 
-All of that is implemented in [patches/gym_bridge.py](/home/farhad/roboracer_ws/src/roboracer_perception/patches/gym_bridge.py:1).
+All of that is implemented in the vendored [deps/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py](/home/farhad/roboracer_ws/src/roboracer_perception/deps/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py:1).
 
 ## Rebuilding After Changes
 
