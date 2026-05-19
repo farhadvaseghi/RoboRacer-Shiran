@@ -17,8 +17,8 @@ from generate_solid_oval_map import (
 
 
 STATIC_OBSTACLES = (
-    {'center': (6.5, 0.55), 'radius': 0.40},
-    {'center': (13.5, 4.45), 'radius': 0.40},
+    {'center': (19.5, 0.55), 'radius': 0.40},
+    {'center': (40.5, 4.45), 'radius': 0.40},
 )
 
 

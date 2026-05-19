@@ -524,7 +524,7 @@ class GymBridge(Node):
             reverse_turning = abs(applied_steer) > 0.001
             applied_speed = max(applied_speed, -0.25 if reverse_turning else -0.80)
 
-        if recovery_cmd is None and self.ego_requested_speed != 0:
+        if False:  # Wall slowdown disabled for demo — was hijacking commanded speed
             left_clear = self._left_clearance()
             right_clear = self._right_clearance()
             command_is_reverse = self.ego_requested_speed < 0

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Camera cone detection node for RoboRacer (real hardware only).
+"""Camera color-blob detection for the solid-wall track + opponent scenario.
+
+Detects colored objects in the ZED 2i feed: blue inner walls, yellow outer
+walls, and the red opponent car body. Works against the real ZED on hardware
+and against sim_camera_walls in simulation (same topic interface).
 
 Pipeline:
   /zed/zed_node/rgb/image_rect_color  (sensor_msgs/Image, bgr8)
@@ -10,7 +14,7 @@ Pipeline:
     → per-color HSV threshold → contours → area filter
     → depth lookup at centroid → 3-D projection (camera frame)
     → rigid transform: camera frame → base_link frame
-    → /perception/camera_cones  (roboracer_perception/ConeArray)
+    → /perception/camera_detections  (roboracer_perception/DetectionArray)
 """
 
 import math
@@ -26,7 +30,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from std_msgs.msg import Header
 from cv_bridge import CvBridge
 
-from roboracer_perception.msg import Cone, ConeArray
+from roboracer_perception.msg import Detection, DetectionArray
 
 
 # ---------------------------------------------------------------------------
@@ -41,7 +45,7 @@ _CAM_Z = 0.155   # above ground
 
 # Area filter for contours (pixels²)
 _AREA_MIN = 200
-_AREA_MAX = 50_000
+_AREA_MAX = 200_000   # raised from 50k — tube-track tubes project up to ~65k px² at 1.5m
 
 # Depth validity range (metres)
 _DEPTH_MIN = 0.1
@@ -69,18 +73,18 @@ def _hsv_params(color: str, params: dict) -> tuple:
     return lo, hi
 
 
-def detect_cones_in_hsv(hsv_img: np.ndarray, depth_img: np.ndarray,
+def detect_blobs_in_hsv(hsv_img: np.ndarray, depth_img: np.ndarray,
                          camera_info_k: list,
                          color_name: str, color_id: int,
                          hsv_lo: np.ndarray, hsv_hi: np.ndarray) -> list:
-    """Detect cones of a single color in an HSV image.
+    """Detect colored blobs of a single color in an HSV image.
 
     Args:
         hsv_img:       H×W×3 HSV image (OpenCV encoding).
         depth_img:     H×W float32 depth in metres (NaN = invalid).
         camera_info_k: Flattened 3×3 camera intrinsic matrix K (9 elements).
         color_name:    Human-readable color label (for logging only).
-        color_id:      Cone.COLOR_* constant.
+        color_id:      Detection.COLOR_* constant.
         hsv_lo:        Lower HSV bound (3-element uint8 array).
         hsv_hi:        Upper HSV bound (3-element uint8 array).
 
@@ -101,7 +105,7 @@ def detect_cones_in_hsv(hsv_img: np.ndarray, depth_img: np.ndarray,
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL,
                                    cv2.CHAIN_APPROX_SIMPLE)
 
-    cones = []
+    blobs = []
     for cnt in contours:
         area = cv2.contourArea(cnt)
         if area < _AREA_MIN or area > _AREA_MAX:
@@ -135,33 +139,41 @@ def detect_cones_in_hsv(hsv_img: np.ndarray, depth_img: np.ndarray,
         # Confidence from blob area
         confidence = min(1.0, area / _CONF_AREA_SCALE)
 
-        # Radius in metres from bounding-box pixel width and depth
-        _, _, bw, _ = cv2.boundingRect(cnt)
-        radius = (bw * depth / fx) / 2.0
+        # Real-world dimensions from bounding-box pixels and depth
+        _, _, bw_px, bh_px = cv2.boundingRect(cnt)
+        bbox_width_m = bw_px * depth / fx    # horizontal extent of the blob
+        bbox_height_m = bh_px * depth / fy   # vertical extent of the blob
+        radius = max(bbox_width_m, bbox_height_m) / 2.0
 
-        cones.append({
+        blobs.append({
             'x': base_x,
             'y': base_y,
             'color': color_id,
             'confidence': confidence,
+            'length': bbox_width_m,
+            'width': bbox_height_m,
+            'yaw': 0.0,        # camera doesn't recover orientation from a single bbox
             'radius': radius,
         })
 
-    return cones
+    return blobs
 
 
-def build_cone_array(header: Header, cones: list) -> ConeArray:
-    """Convert a list of cone dicts into a ConeArray message."""
-    msg = ConeArray()
+def build_detection_array(header: Header, blobs: list) -> DetectionArray:
+    """Convert a list of detection dicts into a DetectionArray message."""
+    msg = DetectionArray()
     msg.header = header
-    for c in cones:
-        cone = Cone()
-        cone.x = float(c['x'])
-        cone.y = float(c['y'])
-        cone.color = int(c['color'])
-        cone.confidence = float(c['confidence'])
-        cone.radius = float(c['radius'])
-        msg.cones.append(cone)
+    for c in blobs:
+        det = Detection()
+        det.x = float(c['x'])
+        det.y = float(c['y'])
+        det.color = int(c['color'])
+        det.confidence = float(c['confidence'])
+        det.length = float(c.get('length', 0.0))
+        det.width = float(c.get('width', 0.0))
+        det.yaw = float(c.get('yaw', 0.0))
+        det.radius = float(c['radius'])
+        msg.detections.append(det)
     return msg
 
 
@@ -170,7 +182,7 @@ def build_cone_array(header: Header, cones: list) -> ConeArray:
 # ---------------------------------------------------------------------------
 
 class CameraProcessor(Node):
-    """ROS 2 node that detects colored cones from ZED 2i stereo camera data.
+    """ROS 2 node that detects colored objects (walls + opponent) from ZED 2i.
 
     Subscribes (approximate-time sync):
         /zed/zed_node/rgb/image_rect_color  (sensor_msgs/Image, bgr8)
@@ -178,7 +190,7 @@ class CameraProcessor(Node):
         /zed/zed_node/rgb/camera_info       (sensor_msgs/CameraInfo)
 
     Publishes:
-        /perception/camera_cones  (roboracer_perception/ConeArray)
+        /perception/camera_detections  (roboracer_perception/DetectionArray)
     """
 
     def __init__(self):
@@ -216,6 +228,14 @@ class CameraProcessor(Node):
         self.declare_parameter('orange_s_high', 255)
         self.declare_parameter('orange_v_high', 255)
 
+        # HSV threshold parameters — red (opponent / dynamic obstacle)
+        self.declare_parameter('red_h_low',      0)
+        self.declare_parameter('red_s_low',    150)
+        self.declare_parameter('red_v_low',     80)
+        self.declare_parameter('red_h_high',    10)
+        self.declare_parameter('red_s_high',   255)
+        self.declare_parameter('red_v_high',   255)
+
         self._bridge = CvBridge()
 
         # Cache the most recent CameraInfo; it's nearly static after start-up.
@@ -249,8 +269,8 @@ class CameraProcessor(Node):
         self._info_sub = self.create_subscription(
             CameraInfo, info_topic, self._info_callback, 10)
 
-        self._cone_pub = self.create_publisher(
-            ConeArray, '/perception/camera_cones', 10)
+        self._detection_pub = self.create_publisher(
+            DetectionArray, '/perception/camera_detections', 10)
 
         self.get_logger().info(
             f'CameraProcessor started — syncing {image_topic} + {depth_topic}')
@@ -285,24 +305,25 @@ class CameraProcessor(Node):
         K = list(self._camera_info.k)  # 9-element flattened 3×3
 
         p = self._params()
-        all_cones: list = []
+        all_detections: list = []
 
         for color_name, color_id in [
-            ('blue',   Cone.COLOR_BLUE),
-            ('yellow', Cone.COLOR_YELLOW),
-            ('orange', Cone.COLOR_ORANGE),
+            ('blue',   Detection.COLOR_BLUE),
+            ('yellow', Detection.COLOR_YELLOW),
+            ('orange', Detection.COLOR_ORANGE),
+            ('red',    Detection.COLOR_RED),
         ]:
             lo, hi = _hsv_params(color_name, p)
-            cones = detect_cones_in_hsv(
+            blobs = detect_blobs_in_hsv(
                 hsv, depth, K, color_name, color_id, lo, hi)
-            all_cones.extend(cones)
+            all_detections.extend(blobs)
 
         header = Header()
         header.stamp = image_msg.header.stamp
         header.frame_id = 'base_link'
 
-        self._cone_pub.publish(build_cone_array(header, all_cones))
-        self.get_logger().debug(f'Published {len(all_cones)} camera cones.')
+        self._detection_pub.publish(build_detection_array(header, all_detections))
+        self.get_logger().debug(f'Published {len(all_detections)} camera detections.')
 
     # ------------------------------------------------------------------
     def _params(self) -> dict:
@@ -313,6 +334,8 @@ class CameraProcessor(Node):
             'yellow_h_high', 'yellow_s_high', 'yellow_v_high',
             'orange_h_low', 'orange_s_low', 'orange_v_low',
             'orange_h_high', 'orange_s_high', 'orange_v_high',
+            'red_h_low', 'red_s_low', 'red_v_low',
+            'red_h_high', 'red_s_high', 'red_v_high',
         ]
         return {n: self.get_parameter(n).value for n in names}
 

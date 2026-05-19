@@ -5,11 +5,12 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /Map1
         - /LaserScan1
-        - /ConeCandidates1
-        - /ConeMap1
+        - /SolidWalls1
+        - /SolidWalls1/Status1
       Splitter Ratio: 0.5
-    Tree Height: 268
+    Tree Height: 452
   - Class: rviz_common/Views
     Expanded:
       - /Current View1
@@ -66,21 +67,21 @@ Visualization Manager:
       Axis: Z
       Channel Name: intensity
       Class: rviz_default_plugins/LaserScan
-      Color: 0; 255; 0
+      Color: 255; 30; 30
       Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
-      Min Color: 0; 0; 0
+      Min Color: 11; 11; 11
       Min Intensity: 0
       Name: LaserScan
       Position Transformer: XYZ
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.029999999329447746
-      Style: Flat Squares
+      Style: Points
       Topic:
         Depth: 1
         Durability Policy: Volatile
@@ -93,27 +94,63 @@ Visualization Manager:
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
-      Name: ConeCandidates
+      Name: SolidWalls
       Namespaces:
-        cone_candidates: true
+        solid_walls: true
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /visualization/solid_wall_markers
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: false
+      Name: WallHits
+      Namespaces:
+        {}
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /visualization/solid_wall_hit_markers
+      Value: false
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: false
+      Name: ObjectsPCA
+      Namespaces:
+        objects_pca: true
       Topic:
         Depth: 10
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /perception/cone_markers
+        Value: /perception/object_markers
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
-      Name: ConeMap
+      Name: Walls
       Namespaces:
-        cone_map: true
+        walls: true
       Topic:
         Depth: 10
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /perception/cone_map_markers
+        Value: /perception/walls
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Opponent
+      Namespaces:
+        opponent: true
+      Topic:
+        Depth: 10
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /perception/opponent
       Value: true
     - Class: rviz_default_plugins/Image
       Enabled: true
@@ -193,11 +230,39 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
+    - Alpha: 1
+      Class: rviz_default_plugins/RobotModel
+      Collision Enabled: false
+      Description File: ""
+      Description Source: Topic
+      Description Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /opp_robot_description
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+      Mass Properties:
+        Inertia: false
+        Mass: false
+      Name: OppRobotModel
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
     - Class: rviz_default_plugins/TF
       Enabled: true
       Frame Timeout: 15
       Frames:
         All Enabled: true
+        base_link:
+          Value: true
         ego_racecar/back_left_wheel:
           Value: true
         ego_racecar/back_right_wheel:
@@ -218,13 +283,35 @@ Visualization Manager:
           Value: true
         ego_racecar/odom:
           Value: true
+        laser:
+          Value: true
         map:
+          Value: true
+        opp_racecar/back_left_wheel:
+          Value: true
+        opp_racecar/back_right_wheel:
+          Value: true
+        opp_racecar/base_link:
+          Value: true
+        opp_racecar/front_left_hinge:
+          Value: true
+        opp_racecar/front_left_wheel:
+          Value: true
+        opp_racecar/front_right_hinge:
+          Value: true
+        opp_racecar/front_right_wheel:
+          Value: true
+        opp_racecar/laser:
+          Value: true
+        opp_racecar/laser_model:
+          Value: true
+        opp_racecar/odom:
           Value: true
       Marker Scale: 0.5
       Name: TF
-      Show Arrows: true
-      Show Axes: true
-      Show Names: true
+      Show Arrows: false
+      Show Axes: false
+      Show Names: false
       Tree:
         map:
           ego_racecar/odom:
@@ -242,6 +329,22 @@ Visualization Manager:
               ego_racecar/laser:
                 {}
               ego_racecar/laser_model:
+                {}
+          opp_racecar/odom:
+            opp_racecar/base_link:
+              opp_racecar/back_left_wheel:
+                {}
+              opp_racecar/back_right_wheel:
+                {}
+              opp_racecar/front_left_hinge:
+                opp_racecar/front_left_wheel:
+                  {}
+              opp_racecar/front_right_hinge:
+                opp_racecar/front_right_wheel:
+                  {}
+              opp_racecar/laser:
+                {}
+              opp_racecar/laser_model:
                 {}
       Update Interval: 0
       Value: true
@@ -262,7 +365,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: false
-      Enabled: true
+      Enabled: false
       Keep: 50
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -286,7 +389,7 @@ Visualization Manager:
       Value: true
   Enabled: true
   Global Options:
-    Background Color: 30; 30; 30
+    Background Color: 200; 200; 200
     Fixed Frame: map
     Frame Rate: 30
   Name: root
@@ -318,33 +421,38 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
-      Class: rviz_default_plugins/TopDownOrtho
+      Class: rviz_default_plugins/ThirdPersonFollower
+      Distance: 10
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05
       Invert Z Axis: false
       Name: Current View
-      Near Clip Distance: 0.009999999776482582
-      Scale: 50
+      Near Clip Distance: 0.01
+      Pitch: 0.5353981852531433
       Target Frame: ego_racecar/base_link
-      Value: TopDownOrtho (rviz)
-      X: 0
-      Y: 0
+      Value: ThirdPersonFollower (rviz_default_plugins)
+      Yaw: 3.1453983783721924
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 987
+  Height: 1399
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000019b00000385fc0200000003fb00000014005a00450044002000430061006d006500720061010000003b000000ed0000002800fffffffb000000100044006900730070006c006100790073010000012e0000018d000000c700fffffffb0000000a0056006900650077007301000002c1000000ff000000a000ffffff000002130000038500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000001b800000521fc0200000003fb00000014005a00450044002000430061006d006500720061010000003b0000015b0000002800fffffffb000000100044006900730070006c006100790073010000019c00000245000000c700fffffffb0000000a0056006900650077007301000003e700000175000000a000ffffff000007060000052100000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
-  Width: 948
-  X: 928
+  Width: 2244
+  X: -32
   Y: -32
   ZED Camera:
     collapsed: false

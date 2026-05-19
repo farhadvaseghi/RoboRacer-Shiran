@@ -109,7 +109,7 @@ class SolidWallVisualizer(Node):
 
         segments = build_wall_segments(self._arc_segment_length)
 
-        for marker_id, (x1, y1, x2, y2) in enumerate(segments):
+        for marker_id, (x1, y1, x2, y2) in enumerate(segments, start=1):
             array.markers.append(
                 marker_for_segment(
                     marker_id, self._frame_id, x1, y1, x2, y2, self._wall_diameter, color,

@@ -1,5 +1,3 @@
-"""Launch the f1tenth simulator with the tube-boundary track map."""
-
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -9,15 +7,17 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def generate_launch_description():
-    base_launch = os.path.join(
-        get_package_share_directory('f1tenth_gym_ros'),
+    perception_launch = os.path.join(
+        get_package_share_directory('roboracer_perception'),
         'launch',
-        'gym_bridge_launch.py',
+        'perception.launch.py',
     )
-
     return LaunchDescription([
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(base_launch),
-            launch_arguments={'map_name': 'tube_track'}.items(),
+            PythonLaunchDescriptionSource(perception_launch),
+            launch_arguments={
+                'sim': 'true',
+                'map_name': 'solid_oval_track',
+            }.items(),
         ),
     ])

@@ -26,6 +26,7 @@ echo ""
 echo "[0/4] Regenerating simulation maps..."
 python3 "$SCRIPT_DIR/tools/generate_solid_oval_map.py"
 python3 "$SCRIPT_DIR/tools/generate_solid_oval_obstacles_map.py"
+python3 "$SCRIPT_DIR/roboracer_perception/tube_track/generate_tube_map.py"
 
 # ── 1. Symlink vendored dependencies into src/ ───────────────────────────────
 

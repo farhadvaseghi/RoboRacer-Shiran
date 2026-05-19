@@ -27,7 +27,7 @@ from rclpy.node import Node
 
 DRIVE_TOPIC = '/drive'
 
-SPEED_FWD = 3.5
+SPEED_FWD = 4.0
 SPEED_REV = 3.0
 STEER_VAL = 0.18
 PUBLISH_HZ = 20
