@@ -1,0 +1,43 @@
+# =============================================================================
+# EKF configuration — Simulation mode (f1tenth_gym_ros)
+#
+# Single input: gym ground-truth odometry, pre-processed by
+# adaptive_covariance_node and republished on /estimation/sim_odom_adaptive.
+#
+# publish_tf is FALSE because f1tenth_gym_ros hard-publishes the
+# odom → base_link TF itself.  A second broadcaster would cause TF conflicts.
+# =============================================================================
+
+ekf_filter_node:
+  ros__parameters:
+    frequency: 50.0
+    sensor_timeout: 0.1
+    two_d_mode: true
+    transform_time_offset: 0.0
+    transform_timeout: 0.0
+    print_diagnostics: true
+    debug: false
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # The gym already broadcasts odom → base_link; do not duplicate it.
+    publish_tf: false
+    publish_acceleration: false
+
+    # -------------------------------------------------------------------------
+    # Odometry input — gym ground-truth routed through adaptive covariance node
+    # -------------------------------------------------------------------------
+    odom0: /estimation/sim_odom_adaptive
+    # State vector: [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
+    # Fuse:          x  y  -   -     -     yaw  vx  vy  -    -      -      vyaw  -   -   -
+    odom0_config: [true,  true,  false,
+                   false, false, true,
+                   true,  true,  false,
+                   false, false, true,
+                   false, false, false]
+    odom0_queue_size: 5
+    odom0_differential: false
+    odom0_relative: false
