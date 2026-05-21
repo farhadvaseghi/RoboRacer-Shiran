@@ -14,6 +14,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
+        (os.path.join('share', package_name, 'maps'), glob('maps/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -26,6 +27,7 @@ setup(
         'console_scripts': [
             'adaptive_covariance_node = roboracer_estimation.adaptive_covariance_node:main',
             'ekf_validator_node = roboracer_estimation.ekf_validator_node:main',
+            'moving_obstacle_controller = roboracer_estimation.moving_obstacle_controller:main',
         ],
     },
 )

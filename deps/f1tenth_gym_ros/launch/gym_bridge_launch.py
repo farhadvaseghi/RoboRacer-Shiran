@@ -57,7 +57,7 @@ def generate_launch_description():
     # Portable map path — resolved from the installed package share directory so
     # it works on any machine regardless of username or workspace location.
     map_path = os.path.join(
-        get_package_share_directory('roboracer_perception'),
+        get_package_share_directory('roboracer_estimation'),
         'maps',
         map_name
     )
