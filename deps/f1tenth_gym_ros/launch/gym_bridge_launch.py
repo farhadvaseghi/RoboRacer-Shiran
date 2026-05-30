@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -30,44 +30,61 @@ from ament_index_python.packages import get_package_share_directory
 import os
 import yaml
 
-def generate_launch_description():
-    ld = LaunchDescription()
 
-    ld.add_action(DeclareLaunchArgument(
-        'use_rviz', default_value='true',
-        description='Set to false to suppress the built-in RViz instance '
-                    '(e.g. when another node launches its own RViz).'
-    ))
-
-    # Keep the current oval track as the default and allow switching to
-    # alternate maps without editing this file.
+def _make_bridge_node(context, *args, **kwargs):
     map_name = os.environ.get('ROBORACER_MAP_NAME', 'oval_track')
-
     config_name = os.environ.get('ROBORACER_SIM_CONFIG_NAME', 'sim.yaml')
 
     config = os.path.join(
         get_package_share_directory('f1tenth_gym_ros'),
         'config',
-        config_name
-        )
-    config_dict = yaml.safe_load(open(config, 'r'))
-    has_opp = config_dict['bridge']['ros__parameters']['num_agent'] > 1
-    teleop = config_dict['bridge']['ros__parameters']['kb_teleop']
-
-    # Portable map path — resolved from the installed package share directory so
-    # it works on any machine regardless of username or workspace location.
+        config_name,
+    )
     map_path = os.path.join(
         get_package_share_directory('roboracer_estimation'),
         'maps',
-        map_name
+        map_name,
     )
 
-    bridge_node = Node(
+    publish_map_odom_tf = LaunchConfiguration('publish_map_odom_tf').perform(context).lower() != 'false'
+
+    return [Node(
         package='f1tenth_gym_ros',
         executable='gym_bridge',
         name='bridge',
-        parameters=[config, {'map_path': map_path}]
+        parameters=[config, {'map_path': map_path, 'publish_map_odom_tf': publish_map_odom_tf}],
+    )]
+
+
+def generate_launch_description():
+    ld = LaunchDescription()
+
+    ld.add_action(DeclareLaunchArgument(
+        'use_rviz', default_value='true',
+        description='Set to false to suppress the built-in RViz instance.',
+    ))
+    ld.add_action(DeclareLaunchArgument(
+        'publish_map_odom_tf', default_value='true',
+        description='Set to false when running SLAM so slam_toolbox can own the map->odom transform.',
+    ))
+
+    map_name = os.environ.get('ROBORACER_MAP_NAME', 'oval_track')
+    config_name = os.environ.get('ROBORACER_SIM_CONFIG_NAME', 'sim.yaml')
+
+    config = os.path.join(
+        get_package_share_directory('f1tenth_gym_ros'),
+        'config',
+        config_name,
     )
+    config_dict = yaml.safe_load(open(config, 'r'))
+    has_opp = config_dict['bridge']['ros__parameters']['num_agent'] > 1
+
+    map_path = os.path.join(
+        get_package_share_directory('roboracer_estimation'),
+        'maps',
+        map_name,
+    )
+
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
@@ -109,9 +126,8 @@ def generate_launch_description():
         remappings=[('/robot_description', 'opp_robot_description')]
     )
 
-    # finalize
     ld.add_action(rviz_node)
-    ld.add_action(bridge_node)
+    ld.add_action(OpaqueFunction(function=_make_bridge_node))
     ld.add_action(nav_lifecycle_node)
     ld.add_action(map_server_node)
     ld.add_action(ego_robot_publisher)

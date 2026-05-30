@@ -71,6 +71,7 @@ class GymBridge(Node):
         self.declare_parameter('sy1')
         self.declare_parameter('stheta1')
         self.declare_parameter('kb_teleop')
+        self.declare_parameter('publish_map_odom_tf', True)
 
         # check num_agents
         num_agents = self.get_parameter('num_agent').value
@@ -157,16 +158,18 @@ class GymBridge(Node):
 
         # Static transform: map → <ns>/odom  (identity — no drift in simulation)
         # This completes the REP-105 chain: map → odom → base_link
+        # Disabled when publish_map_odom_tf:=false so SLAM can own this transform.
         self.static_br = StaticTransformBroadcaster(self)
         _ts = self.get_clock().now().to_msg()
         static_tfs = []
-        _ego_map_odom = TransformStamped()
-        _ego_map_odom.header.stamp = _ts
-        _ego_map_odom.header.frame_id = 'map'
-        _ego_map_odom.child_frame_id = self.ego_namespace + '/odom'
-        _ego_map_odom.transform.rotation.w = 1.0
-        static_tfs.append(_ego_map_odom)
-        if self.has_opp:
+        if self.get_parameter('publish_map_odom_tf').value:
+            _ego_map_odom = TransformStamped()
+            _ego_map_odom.header.stamp = _ts
+            _ego_map_odom.header.frame_id = 'map'
+            _ego_map_odom.child_frame_id = self.ego_namespace + '/odom'
+            _ego_map_odom.transform.rotation.w = 1.0
+            static_tfs.append(_ego_map_odom)
+        if self.has_opp and self.get_parameter('publish_map_odom_tf').value:
             _opp_map_odom = TransformStamped()
             _opp_map_odom.header.stamp = _ts
             _opp_map_odom.header.frame_id = 'map'

@@ -1,0 +1,21 @@
+pure_pursuit_controller:
+  ros__parameters:
+    wheelbase: 0.3302
+    lookahead_distance: 2.0
+    speed: 2.0
+    reverse_speed: 2.0
+    max_steering_angle: 0.4
+    goal_tolerance: 0.2
+    timer_period_sec: 0.05
+    min_speed_near_goal: 0.4
+    sharp_turn_threshold: 0.25
+    goal_slowdown_distance: 1.0
+    turn_speed_reduction_factor: 0.6
+    reverse_trigger_x: -0.15
+    forward_trigger_x: 0.15
+    pid_kp: 0.60
+    pid_ki: 0.05
+    pid_kd: 0.02
+    pid_integral_limit: 2.0
+    pid_output_limit: 1.0
+    max_speed_command: 3.0

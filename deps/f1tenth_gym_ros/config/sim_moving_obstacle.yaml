@@ -21,8 +21,8 @@ bridge:
     map_path: 'OVERRIDDEN_BY_LAUNCH'
     map_img_ext: '.pgm'
 
-    # Dedicated moving-obstacle scenario: enable the second simulator agent.
-    num_agent: 2
+    # Set to 2 to re-enable the opponent car for dynamic overtaking experiments.
+    num_agent: 1
 
     # Start both cars side by side like a race grid: same forward position,
     # small lateral separation, same heading.
@@ -34,4 +34,4 @@ bridge:
     sy1: 0.6
     stheta1: 0.0
 
-    kb_teleop: False
+    kb_teleop: True
