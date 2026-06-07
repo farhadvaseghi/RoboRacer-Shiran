@@ -1,6 +1,6 @@
 bt_navigator:
   ros__parameters:
-    use_sim_time: false
+    use_sim_time: true
     global_frame: map
     robot_base_frame: ego_racecar/base_link
     odom_topic: /ego_racecar/odom
@@ -58,7 +58,7 @@ bt_navigator:
 
 controller_server:
   ros__parameters:
-    use_sim_time: false
+    use_sim_time: true
     controller_frequency: 20.0
     controller_plugins: ["FollowPath"]
 
@@ -79,7 +79,7 @@ controller_server:
 
 velocity_smoother:
   ros__parameters:
-    use_sim_time: false
+    use_sim_time: true
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
@@ -95,7 +95,7 @@ velocity_smoother:
 planner_server:
   ros__parameters:
     expected_planner_frequency: 20.0
-    use_sim_time: false
+    use_sim_time: true
     planner_plugins: ["GridBased"]
     GridBased:
       plugin: "nav2_smac_planner/SmacPlannerHybrid"
@@ -117,7 +117,7 @@ local_costmap:
       publish_frequency: 2.0
       global_frame: ego_racecar/odom
       robot_base_frame: ego_racecar/base_link
-      use_sim_time: false
+      use_sim_time: true
       rolling_window: true
       width: 3
       height: 3
@@ -144,7 +144,7 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: ego_racecar/base_link
-      use_sim_time: false
+      use_sim_time: true
       footprint: "[ [0.3, 0.2], [0.3, -0.2], [-0.1, -0.2], [-0.1, 0.2] ]"
       resolution: 0.05
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
