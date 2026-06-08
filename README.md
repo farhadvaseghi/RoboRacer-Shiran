@@ -14,6 +14,34 @@ The architecture comprises two main nodes working in tandem:
 
 ---
 
+## Running the Stack
+
+Open **3 terminals** and run the following in each:
+
+### Terminal 1 — Simulator
+```bash
+source /opt/ros/humble/setup.bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch roboracer_estimation sim.launch.py
+```
+
+### Terminal 2 — Navigation Stack
+```bash
+source /opt/ros/humble/setup.bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch roboracer_estimation navigation.launch.py
+```
+
+### Terminal 3 — RViz
+```bash
+source ~/ros2_ws/install/setup.bash
+ros2 run rviz2 rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz
+```
+
+Once all three are running, use the **Nav2 Goal** tool in RViz to click a target position on the track. The robot will plan a path and autonomously follow it to the goal.
+
+---
+
 ## File Breakdown, Inputs, Outputs & Functionality
 
 ### 1. `roboracer_estimation/roboracer_estimation/adaptive_covariance_node.py`
