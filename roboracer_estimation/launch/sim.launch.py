@@ -37,7 +37,7 @@ def _launch_estimation(context, *args, **kwargs):
         package='roboracer_estimation',
         executable='adaptive_covariance_node',
         name='adaptive_covariance_node',
-        parameters=[{'is_sim': True, 'use_sim_time': True}],
+        parameters=[{'is_sim': True, 'use_sim_time': False}],
         output='screen',
     )
 
@@ -45,7 +45,7 @@ def _launch_estimation(context, *args, **kwargs):
         package='robot_localization',
         executable='ekf_node',
         name='ekf_filter_node',
-        parameters=[ekf_config, {'frequency': ekf_frequency, 'use_sim_time': True}],
+        parameters=[ekf_config, {'frequency': ekf_frequency, 'use_sim_time': False}],
         output='screen',
     )
 

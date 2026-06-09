@@ -22,11 +22,7 @@ add_executable(pure_pursuit_controller src/pure_pursuit_controller.cpp)
 ament_target_dependencies(pure_pursuit_controller
   rclcpp tf2 tf2_ros ackermann_msgs nav_msgs geometry_msgs visualization_msgs)
 
-add_executable(stanley_controller src/stanley_controller.cpp)
-ament_target_dependencies(stanley_controller
-  rclcpp tf2 tf2_ros ackermann_msgs nav_msgs geometry_msgs visualization_msgs)
-
-install(TARGETS pure_pursuit_controller stanley_controller
+install(TARGETS pure_pursuit_controller
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY config launch

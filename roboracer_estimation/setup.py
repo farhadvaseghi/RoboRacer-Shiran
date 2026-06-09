@@ -29,6 +29,7 @@ setup(
             'ekf_validator_node = roboracer_estimation.ekf_validator_node:main',
             'moving_obstacle_controller = roboracer_estimation.moving_obstacle_controller:main',
             'cmd_vel_to_ackermann = roboracer_estimation.cmd_vel_to_ackermann:main',
+            'path_relay_node = roboracer_estimation.path_relay_node:main',
         ],
     },
 )

@@ -34,4 +34,4 @@ bridge:
     sy1: 0.6
     stheta1: 0.0
 
-    kb_teleop: True
+    kb_teleop: False

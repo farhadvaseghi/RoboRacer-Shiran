@@ -16,7 +16,7 @@ The architecture comprises two main nodes working in tandem:
 
 ## Running the Stack
 
-Open **3 terminals** and run the following in each:
+Open **4 terminals** and run the following in each:
 
 ### Terminal 1 — Simulator
 ```bash
@@ -32,7 +32,14 @@ source ~/ros2_ws/install/setup.bash
 ros2 launch roboracer_estimation navigation.launch.py
 ```
 
-### Terminal 3 — RViz
+### Terminal 3 — Pure Pursuit Controller
+```bash
+source /opt/ros/humble/setup.bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch roboracer_control controller.launch.py
+```
+
+### Terminal 4 — RViz
 ```bash
 source ~/ros2_ws/install/setup.bash
 ros2 run rviz2 rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz

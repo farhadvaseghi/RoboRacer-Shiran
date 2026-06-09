@@ -1,7 +1,19 @@
 pure_pursuit_controller:
   ros__parameters:
     wheelbase: 0.3302
-    lookahead_distance: 2.0
+    # New gym interface and namespaced frames.
+    drive_topic: /drive
+    odom_topic: /odometry/filtered
+    path_topic: /control/plan
+    base_frame: ego_racecar/base_link
+    odom_frame: ego_racecar/odom
+
+    # Scale lookahead with speed: 0.6 m at low speed, up to 2.0 m.
+    lookahead_distance: 1.0  # used only when velocity scaling is false
+    use_velocity_scaled_lookahead: true
+    min_lookahead_distance: 0.6
+    max_lookahead_distance: 2.0
+    lookahead_time: 0.8
     speed: 2.0
     reverse_speed: 2.0
     max_steering_angle: 0.4
@@ -19,3 +31,6 @@ pure_pursuit_controller:
     pid_integral_limit: 2.0
     pid_output_limit: 1.0
     max_speed_command: 3.0
+    # The gym's Ackermann speed field is already a desired velocity. Its vehicle
+    # model closes the speed loop internally, so an additional PID causes overshoot.
+    use_speed_pid: false

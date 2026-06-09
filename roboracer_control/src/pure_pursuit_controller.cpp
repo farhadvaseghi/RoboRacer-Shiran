@@ -12,6 +12,7 @@
 #include <cmath>
 #include <limits>
 #include <algorithm>
+#include <stdexcept>
 #include <string>
 
 using namespace std::chrono_literals;
@@ -30,7 +31,7 @@ public:
 
         // Publish final Ackermann command
         nav_pub_ = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(
-            "/nav", 10
+            drive_topic_, 10
         );
 
         // RViz debug markers
@@ -45,15 +46,17 @@ public:
 
         // Current robot state from odometry
         odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            "/odom",
+            odom_topic_,
             10,
             std::bind(&PurePursuitController::odom_callback, this, std::placeholders::_1)
         );
 
         // Global path from planner
+        auto path_qos = rclcpp::QoS(rclcpp::KeepLast(1));
+        path_qos.reliable().transient_local();
         plan_sub_ = this->create_subscription<nav_msgs::msg::Path>(
-            "/plan",
-            10,
+            path_topic_,
+            path_qos,
             std::bind(&PurePursuitController::path_callback, this, std::placeholders::_1)
         );
 
@@ -64,7 +67,8 @@ public:
         );
 
         RCLCPP_INFO(this->get_logger(),
-                    "PurePursuitController initialized. Waiting for /plan ...");
+                    "PurePursuitController: odom=%s path=%s drive=%s",
+                    odom_topic_.c_str(), path_topic_.c_str(), drive_topic_.c_str());
     }
 
 private:
@@ -119,6 +123,9 @@ private:
     // -------------------------------------------------
     double wheelbase_;
     double lookahead_distance_;
+    double min_lookahead_distance_;
+    double max_lookahead_distance_;
+    double lookahead_time_;
     double speed_;
     double reverse_speed_;
     double max_steering_angle_;
@@ -135,6 +142,14 @@ private:
     double max_speed_command_;
     double reverse_trigger_x_;
     double forward_trigger_x_;
+    bool use_velocity_scaled_lookahead_;
+    bool use_speed_pid_;
+    std::string drive_topic_;
+    std::string odom_topic_;
+    std::string path_topic_;
+    std::string base_frame_;
+    std::string odom_frame_;
+    std::string path_frame_;
     double timer_period_sec_ = 0.05;
     double marker_lifetime_sec_ = 0.20;
 
@@ -158,6 +173,10 @@ private:
         // Tunable controller parameters
         this->declare_parameter<double>("wheelbase", 0.3302);
         this->declare_parameter<double>("lookahead_distance", 1.0);
+        this->declare_parameter<bool>("use_velocity_scaled_lookahead", true);
+        this->declare_parameter<double>("min_lookahead_distance", 0.6);
+        this->declare_parameter<double>("max_lookahead_distance", 2.0);
+        this->declare_parameter<double>("lookahead_time", 0.8);
         this->declare_parameter<double>("speed", 2.0);
         this->declare_parameter<double>("reverse_speed", 2.0);
         this->declare_parameter<double>("max_steering_angle", 0.4);
@@ -175,6 +194,7 @@ private:
         this->declare_parameter<double>("pid_integral_limit", 2.0);
         this->declare_parameter<double>("pid_output_limit", 1.0);
         this->declare_parameter<double>("max_speed_command", 3.0);
+        this->declare_parameter<bool>("use_speed_pid", false);
 
         // RViz markers
         this->declare_parameter<double>("marker_lifetime_sec", 0.20);
@@ -182,6 +202,13 @@ private:
         // Reverse/forward hysteresis
         this->declare_parameter<double>("reverse_trigger_x", -0.15);
         this->declare_parameter<double>("forward_trigger_x", 0.15);
+
+        // Current f1tenth_gym_ros / Nav2 interface. Override these for hardware.
+        this->declare_parameter<std::string>("drive_topic", "/drive");
+        this->declare_parameter<std::string>("odom_topic", "/odometry/filtered");
+        this->declare_parameter<std::string>("path_topic", "/control/plan");
+        this->declare_parameter<std::string>("base_frame", "ego_racecar/base_link");
+        this->declare_parameter<std::string>("odom_frame", "ego_racecar/odom");
     }
 
     // Read parameters once at startup
@@ -189,6 +216,10 @@ private:
     {
         wheelbase_ = this->get_parameter("wheelbase").as_double();
         lookahead_distance_ = this->get_parameter("lookahead_distance").as_double();
+        use_velocity_scaled_lookahead_ = this->get_parameter("use_velocity_scaled_lookahead").as_bool();
+        min_lookahead_distance_ = this->get_parameter("min_lookahead_distance").as_double();
+        max_lookahead_distance_ = this->get_parameter("max_lookahead_distance").as_double();
+        lookahead_time_ = this->get_parameter("lookahead_time").as_double();
         speed_ = this->get_parameter("speed").as_double();
         reverse_speed_ = this->get_parameter("reverse_speed").as_double();
         max_steering_angle_ = this->get_parameter("max_steering_angle").as_double();
@@ -203,9 +234,21 @@ private:
         pid_integral_limit_ = this->get_parameter("pid_integral_limit").as_double();
         pid_output_limit_ = this->get_parameter("pid_output_limit").as_double();
         max_speed_command_ = this->get_parameter("max_speed_command").as_double();
+        use_speed_pid_ = this->get_parameter("use_speed_pid").as_bool();
         reverse_trigger_x_ = this->get_parameter("reverse_trigger_x").as_double();
         forward_trigger_x_ = this->get_parameter("forward_trigger_x").as_double();
         marker_lifetime_sec_ = this->get_parameter("marker_lifetime_sec").as_double();
+        drive_topic_ = this->get_parameter("drive_topic").as_string();
+        odom_topic_ = this->get_parameter("odom_topic").as_string();
+        path_topic_ = this->get_parameter("path_topic").as_string();
+        base_frame_ = this->get_parameter("base_frame").as_string();
+        odom_frame_ = this->get_parameter("odom_frame").as_string();
+
+        if (min_lookahead_distance_ <= 0.0 || max_lookahead_distance_ < min_lookahead_distance_)
+        {
+            throw std::invalid_argument(
+                "lookahead distances must satisfy 0 < min_lookahead_distance <= max_lookahead_distance");
+        }
 
         timer_period_sec_ = this->get_parameter("timer_period_sec").as_double();
         last_control_time_ = this->now();
@@ -250,6 +293,17 @@ private:
     double clamp_signed_speed(double speed) const
     {
         return std::clamp(speed, -max_speed_command_, max_speed_command_);
+    }
+
+    double current_lookahead_distance() const
+    {
+        if (!use_velocity_scaled_lookahead_)
+            return lookahead_distance_;
+
+        return std::clamp(
+            std::abs(velocity_) * lookahead_time_,
+            min_lookahead_distance_,
+            max_lookahead_distance_);
     }
 
     void reset_speed_pid()
@@ -372,7 +426,7 @@ private:
     {
         geometry_msgs::msg::Vector3Stamped msg;
         msg.header.stamp = this->now();
-        msg.header.frame_id = "base_link";
+        msg.header.frame_id = base_frame_;
         msg.vector.x = tracking_errors.cross_track_error;
         msg.vector.y = tracking_errors.heading_error;
         msg.vector.z = 0.0;
@@ -389,8 +443,11 @@ private:
         visualization_msgs::msg::MarkerArray array;
 
         // 1) Target point marker
+        const std::string & marker_frame = path_frame_.empty() ? odom_frame_ : path_frame_;
+        const double lookahead = current_lookahead_distance();
+
         auto target_marker = make_base_marker(0, visualization_msgs::msg::Marker::SPHERE,
-                                              "pure_pursuit", "odom", now);
+                                              "pure_pursuit", marker_frame, now);
         target_marker.pose.position = make_point(target_x, target_y, 0.05);
         target_marker.scale.x = 0.18;
         target_marker.scale.y = 0.18;
@@ -403,7 +460,7 @@ private:
 
         // 2) Lookahead circle marker
         auto circle_marker = make_base_marker(1, visualization_msgs::msg::Marker::LINE_STRIP,
-                                              "pure_pursuit", "odom", now);
+                                              "pure_pursuit", marker_frame, now);
         circle_marker.scale.x = 0.03;
         circle_marker.color.a = 0.95;
         circle_marker.color.r = 0.2;
@@ -414,15 +471,15 @@ private:
         {
             const double theta = 2.0 * M_PI * static_cast<double>(i) / static_cast<double>(kCircleSamples);
             circle_marker.points.push_back(make_point(
-                x_ + lookahead_distance_ * std::cos(theta),
-                y_ + lookahead_distance_ * std::sin(theta),
+                x_ + lookahead * std::cos(theta),
+                y_ + lookahead * std::sin(theta),
                 0.02));
         }
         array.markers.push_back(circle_marker);
 
         // 3) Error vector marker (robot -> path projection)
         auto error_marker = make_base_marker(2, visualization_msgs::msg::Marker::LINE_STRIP,
-                                             "pure_pursuit", "odom", now);
+                                             "pure_pursuit", marker_frame, now);
         error_marker.scale.x = 0.05;
         error_marker.color.a = 1.0;
         error_marker.color.r = 1.0;
@@ -437,7 +494,7 @@ private:
 
         // 4) Steering direction marker
         auto steering_marker = make_base_marker(3, visualization_msgs::msg::Marker::ARROW,
-                                                "pure_pursuit", "odom", now);
+                                                "pure_pursuit", marker_frame, now);
 
         // arrow size
         steering_marker.scale.x = 0.04;   // shaft diameter
@@ -473,6 +530,8 @@ private:
         reset_speed_pid();
 
         ackermann_msgs::msg::AckermannDriveStamped msg;
+        msg.header.stamp = this->now();
+        msg.header.frame_id = base_frame_;
         msg.drive.speed = 0.0;
         msg.drive.steering_angle = 0.0;
         nav_pub_->publish(msg);
@@ -505,6 +564,7 @@ private:
     void path_callback(const nav_msgs::msg::Path::SharedPtr msg)
     {
         path_.clear();
+        path_frame_ = msg->header.frame_id;
 
         if (msg->poses.empty())
         {
@@ -513,7 +573,7 @@ private:
             reverse_mode_ = false;
             last_progress_idx_ = 0;
             reset_speed_pid();
-            RCLCPP_WARN(this->get_logger(), "Received empty /plan.");
+            RCLCPP_WARN(this->get_logger(), "Received empty path on %s.", path_topic_.c_str());
             return;
         }
 
@@ -534,8 +594,9 @@ private:
         reset_speed_pid();
 
         RCLCPP_INFO(this->get_logger(),
-                    "Received /plan with %zu points. Start=(%.2f, %.2f) End=(%.2f, %.2f)",
+                    "Received path with %zu points in frame '%s'. Start=(%.2f, %.2f) End=(%.2f, %.2f)",
                     path_.size(),
+                    path_frame_.c_str(),
                     path_.front().x, path_.front().y,
                     path_.back().x, path_.back().y);
     }
@@ -578,7 +639,8 @@ private:
     bool find_lookahead_target_waypoint(int start_idx,
                                         double &target_x,
                                         double &target_y,
-                                        int &target_idx)
+                                        int &target_idx,
+                                        double lookahead)
     {
         if (path_.empty())
             return false;
@@ -592,7 +654,7 @@ private:
         {
             double d = distance_xy(x_, y_, path_[i].x, path_[i].y);
 
-            if (d >= lookahead_distance_)
+            if (d >= lookahead)
             {
                 target_x = path_[i].x;
                 target_y = path_[i].y;
@@ -616,7 +678,8 @@ private:
     bool find_lookahead_target_segment(int start_idx,
                                        double &target_x,
                                        double &target_y,
-                                       int &target_idx)
+                                       int &target_idx,
+                                       double lookahead)
     {
         if (path_.empty())
             return false;
@@ -652,7 +715,7 @@ private:
                 continue;
 
             const double b = 2.0 * (fx * dx + fy * dy);
-            const double c = fx * fx + fy * fy - lookahead_distance_ * lookahead_distance_;
+            const double c = fx * fx + fy * fy - lookahead * lookahead;
 
             const double discriminant = b * b - 4.0 * a * c;
             if (discriminant < 0.0)
@@ -733,12 +796,13 @@ private:
 
         // Option A: waypoint-based lookahead
         // bool ok = find_lookahead_target_waypoint(
-        //     last_progress_idx_, target_x, target_y, target_idx
+        //     last_progress_idx_, target_x, target_y, target_idx, lookahead
         // );
 
         // Option B: segment-based lookahead
+        const double lookahead = current_lookahead_distance();
         bool ok = find_lookahead_target_segment(
-            last_progress_idx_, target_x, target_y, target_idx
+            last_progress_idx_, target_x, target_y, target_idx, lookahead
         );
 
         if (!ok)
@@ -824,10 +888,14 @@ private:
         }
 
         // Closed-loop longitudinal control: follow target_speed using odometry feedback
-        const double cmd_speed = compute_pid_speed_command(target_speed, dt);
+        const double cmd_speed = use_speed_pid_
+            ? compute_pid_speed_command(target_speed, dt)
+            : clamp_signed_speed(target_speed);
 
         // Publish control command
         ackermann_msgs::msg::AckermannDriveStamped msg;
+        msg.header.stamp = this->now();
+        msg.header.frame_id = base_frame_;
         msg.drive.speed = cmd_speed;
         msg.drive.steering_angle = steering;
         nav_pub_->publish(msg);

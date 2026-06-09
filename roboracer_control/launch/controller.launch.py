@@ -16,17 +16,16 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'use_sim_time',
-            default_value='true',
-            description='Use simulation clock'),
+            default_value='false',
+            description='Use /clock instead of wall time'),
 
         Node(
             package='roboracer_control',
             executable='pure_pursuit_controller',
             name='pure_pursuit_controller',
             parameters=[params_file, {'use_sim_time': use_sim_time}],
-            remappings=[
-                ('/odom', '/odometry/filtered'),
-            ],
+            arguments=['--ros-args', '--log-level', 'pure_pursuit_controller:=info'],
             output='screen',
+            emulate_tty=True,
         ),
     ])
