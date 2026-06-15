@@ -133,7 +133,6 @@ ros2 launch roboracer_estimation navigation.launch.py
 
 ### Terminal 3 — RViz
 ```bash
-source ~/ros2_ws/install/setup.bash
 ros2 run rviz2 rviz2 -d /opt/ros/humble/share/nav2_bringup/rviz/nav2_default_view.rviz
 ```
 
