@@ -59,12 +59,12 @@ def generate_launch_description():
         'gym_bridge_launch.py',
     )
 
-    # moving_obstacle = Node(
-    #     package='roboracer_estimation',
-    #     executable='moving_obstacle_controller',
-    #     name='moving_obstacle_controller',
-    #     output='screen',
-    # )
+    moving_obstacle = Node(
+        package='roboracer_estimation',
+        executable='moving_obstacle_controller',
+        name='moving_obstacle_controller',
+        output='screen',
+    )
 
     return LaunchDescription([
         DeclareLaunchArgument(
@@ -81,7 +81,7 @@ def generate_launch_description():
             launch_arguments={'use_rviz': 'true'}.items(),
         ),
 
-        # moving_obstacle,  # re-enable for dynamic overtaking experiments
+        moving_obstacle,
 
         OpaqueFunction(function=_launch_estimation),
     ])

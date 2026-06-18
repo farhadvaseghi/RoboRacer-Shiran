@@ -51,6 +51,12 @@ public:
             std::bind(&PurePursuitController::odom_callback, this, std::placeholders::_1)
         );
 
+        opponent_odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+            opponent_odom_topic_,
+            10,
+            std::bind(&PurePursuitController::opponent_odom_callback, this, std::placeholders::_1)
+        );
+
         // Global path from planner
         auto path_qos = rclcpp::QoS(rclcpp::KeepLast(1));
         path_qos.reliable().transient_local();
@@ -67,8 +73,9 @@ public:
         );
 
         RCLCPP_INFO(this->get_logger(),
-                    "PurePursuitController: odom=%s path=%s drive=%s",
-                    odom_topic_.c_str(), path_topic_.c_str(), drive_topic_.c_str());
+                    "PurePursuitController: odom=%s opponent_odom=%s path=%s drive=%s mpc_overtaking=%s",
+                    odom_topic_.c_str(), opponent_odom_topic_.c_str(), path_topic_.c_str(),
+                    drive_topic_.c_str(), enable_mpc_overtaking_ ? "enabled" : "disabled");
     }
 
 private:
@@ -88,6 +95,18 @@ private:
         double path_yaw = 0.0;
     };
 
+    struct MpcDecision
+    {
+        bool active = false;
+        bool opponent_relevant = false;
+        double target_x = 0.0;
+        double target_y = 0.0;
+        double target_speed = 0.0;
+        double lateral_offset = 0.0;
+        double cost = 0.0;
+        double min_predicted_clearance = std::numeric_limits<double>::infinity();
+    };
+
     // -------------------------------------------------
     // ROS interfaces
     // -------------------------------------------------
@@ -95,6 +114,7 @@ private:
     rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr debug_marker_pub_;
     rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr tracking_error_pub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr opponent_odom_sub_;
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr plan_sub_;
     rclcpp::TimerBase::SharedPtr timer_;
 
@@ -106,6 +126,13 @@ private:
     double yaw_ = 0.0;
     double velocity_ = 0.0;
     bool have_odom_ = false;
+
+    double opponent_x_ = 0.0;
+    double opponent_y_ = 0.0;
+    double opponent_yaw_ = 0.0;
+    double opponent_speed_ = 0.0;
+    bool have_opponent_ = false;
+    rclcpp::Time last_opponent_stamp_;
 
     // -------------------------------------------------
     // Current path state from /plan
@@ -134,6 +161,13 @@ private:
     double sharp_turn_threshold_;
     double goal_slowdown_distance_;
     double turn_speed_reduction_factor_;
+    double straight_speed_;
+    double turn_speed_;
+    double close_obstacle_speed_;
+    double obstacle_slowdown_distance_;
+    double obstacle_stop_distance_;
+    double max_acceleration_;
+    double max_deceleration_;
     double pid_kp_;
     double pid_ki_;
     double pid_kd_;
@@ -144,8 +178,28 @@ private:
     double forward_trigger_x_;
     bool use_velocity_scaled_lookahead_;
     bool use_speed_pid_;
+    bool enable_mpc_overtaking_;
+    bool mpc_overtake_active_ = false;
+    int mpc_horizon_steps_;
+    double mpc_dt_;
+    double mpc_safety_radius_;
+    double mpc_detection_distance_;
+    double mpc_opponent_timeout_sec_;
+    double mpc_collision_weight_;
+    double mpc_tracking_weight_;
+    double mpc_offset_weight_;
+    double mpc_steering_weight_;
+    double mpc_speed_weight_;
+    double mpc_overtake_speed_;
+    double mpc_follow_speed_;
+    double mpc_activation_margin_;
+    double mpc_following_gap_;
+    double mpc_follow_penalty_;
+    double mpc_side_bias_weight_;
+    std::vector<double> mpc_lateral_offsets_;
     std::string drive_topic_;
     std::string odom_topic_;
+    std::string opponent_odom_topic_;
     std::string path_topic_;
     std::string base_frame_;
     std::string odom_frame_;
@@ -158,6 +212,9 @@ private:
     double previous_speed_error_ = 0.0;
     bool have_previous_speed_error_ = false;
     rclcpp::Time last_control_time_;
+    rclcpp::Time controller_start_time_;
+    double previous_cmd_speed_ = 0.0;
+    bool have_previous_cmd_speed_ = false;
 
     // Normalize angle to [-pi, pi]
     static double normalize_angle(double angle)
@@ -186,6 +243,13 @@ private:
         this->declare_parameter<double>("sharp_turn_threshold", 0.25);
         this->declare_parameter<double>("goal_slowdown_distance", 1.0);
         this->declare_parameter<double>("turn_speed_reduction_factor", 0.6);
+        this->declare_parameter<double>("straight_speed", 2.8);
+        this->declare_parameter<double>("turn_speed", 1.15);
+        this->declare_parameter<double>("close_obstacle_speed", 0.55);
+        this->declare_parameter<double>("obstacle_slowdown_distance", 3.2);
+        this->declare_parameter<double>("obstacle_stop_distance", 0.85);
+        this->declare_parameter<double>("max_acceleration", 1.8);
+        this->declare_parameter<double>("max_deceleration", 3.0);
 
         // Longitudinal PID
         this->declare_parameter<double>("pid_kp", 0.60);
@@ -195,6 +259,28 @@ private:
         this->declare_parameter<double>("pid_output_limit", 1.0);
         this->declare_parameter<double>("max_speed_command", 3.0);
         this->declare_parameter<bool>("use_speed_pid", false);
+
+        this->declare_parameter<bool>("enable_mpc_overtaking", true);
+        this->declare_parameter<std::string>("opponent_odom_topic", "/opp_racecar/odom");
+        this->declare_parameter<int>("mpc_horizon_steps", 14);
+        this->declare_parameter<double>("mpc_dt", 0.12);
+        this->declare_parameter<double>("mpc_safety_radius", 0.95);
+        this->declare_parameter<double>("mpc_detection_distance", 5.0);
+        this->declare_parameter<double>("mpc_opponent_timeout_sec", 0.6);
+        this->declare_parameter<double>("mpc_collision_weight", 1200.0);
+        this->declare_parameter<double>("mpc_tracking_weight", 3.0);
+        this->declare_parameter<double>("mpc_offset_weight", 0.45);
+        this->declare_parameter<double>("mpc_steering_weight", 1.0);
+        this->declare_parameter<double>("mpc_speed_weight", 0.15);
+        this->declare_parameter<double>("mpc_overtake_speed", 2.35);
+        this->declare_parameter<double>("mpc_follow_speed", 0.75);
+        this->declare_parameter<double>("mpc_activation_margin", 0.35);
+        this->declare_parameter<double>("mpc_following_gap", 2.4);
+        this->declare_parameter<double>("mpc_follow_penalty", 6.5);
+        this->declare_parameter<double>("mpc_side_bias_weight", 4.0);
+        this->declare_parameter<std::vector<double>>(
+            "mpc_lateral_offsets",
+            std::vector<double>{0.0, -0.45, 0.45, -0.75, 0.75, -1.05, 1.05});
 
         // RViz markers
         this->declare_parameter<double>("marker_lifetime_sec", 0.20);
@@ -228,6 +314,13 @@ private:
         sharp_turn_threshold_ = this->get_parameter("sharp_turn_threshold").as_double();
         goal_slowdown_distance_ = this->get_parameter("goal_slowdown_distance").as_double();
         turn_speed_reduction_factor_ = this->get_parameter("turn_speed_reduction_factor").as_double();
+        straight_speed_ = this->get_parameter("straight_speed").as_double();
+        turn_speed_ = this->get_parameter("turn_speed").as_double();
+        close_obstacle_speed_ = this->get_parameter("close_obstacle_speed").as_double();
+        obstacle_slowdown_distance_ = this->get_parameter("obstacle_slowdown_distance").as_double();
+        obstacle_stop_distance_ = this->get_parameter("obstacle_stop_distance").as_double();
+        max_acceleration_ = this->get_parameter("max_acceleration").as_double();
+        max_deceleration_ = this->get_parameter("max_deceleration").as_double();
         pid_kp_ = this->get_parameter("pid_kp").as_double();
         pid_ki_ = this->get_parameter("pid_ki").as_double();
         pid_kd_ = this->get_parameter("pid_kd").as_double();
@@ -235,6 +328,25 @@ private:
         pid_output_limit_ = this->get_parameter("pid_output_limit").as_double();
         max_speed_command_ = this->get_parameter("max_speed_command").as_double();
         use_speed_pid_ = this->get_parameter("use_speed_pid").as_bool();
+        enable_mpc_overtaking_ = this->get_parameter("enable_mpc_overtaking").as_bool();
+        opponent_odom_topic_ = this->get_parameter("opponent_odom_topic").as_string();
+        mpc_horizon_steps_ = this->get_parameter("mpc_horizon_steps").as_int();
+        mpc_dt_ = this->get_parameter("mpc_dt").as_double();
+        mpc_safety_radius_ = this->get_parameter("mpc_safety_radius").as_double();
+        mpc_detection_distance_ = this->get_parameter("mpc_detection_distance").as_double();
+        mpc_opponent_timeout_sec_ = this->get_parameter("mpc_opponent_timeout_sec").as_double();
+        mpc_collision_weight_ = this->get_parameter("mpc_collision_weight").as_double();
+        mpc_tracking_weight_ = this->get_parameter("mpc_tracking_weight").as_double();
+        mpc_offset_weight_ = this->get_parameter("mpc_offset_weight").as_double();
+        mpc_steering_weight_ = this->get_parameter("mpc_steering_weight").as_double();
+        mpc_speed_weight_ = this->get_parameter("mpc_speed_weight").as_double();
+        mpc_overtake_speed_ = this->get_parameter("mpc_overtake_speed").as_double();
+        mpc_follow_speed_ = this->get_parameter("mpc_follow_speed").as_double();
+        mpc_activation_margin_ = this->get_parameter("mpc_activation_margin").as_double();
+        mpc_following_gap_ = this->get_parameter("mpc_following_gap").as_double();
+        mpc_follow_penalty_ = this->get_parameter("mpc_follow_penalty").as_double();
+        mpc_side_bias_weight_ = this->get_parameter("mpc_side_bias_weight").as_double();
+        mpc_lateral_offsets_ = this->get_parameter("mpc_lateral_offsets").as_double_array();
         reverse_trigger_x_ = this->get_parameter("reverse_trigger_x").as_double();
         forward_trigger_x_ = this->get_parameter("forward_trigger_x").as_double();
         marker_lifetime_sec_ = this->get_parameter("marker_lifetime_sec").as_double();
@@ -250,8 +362,16 @@ private:
                 "lookahead distances must satisfy 0 < min_lookahead_distance <= max_lookahead_distance");
         }
 
+        if (mpc_horizon_steps_ < 1)
+            mpc_horizon_steps_ = 1;
+        if (mpc_dt_ <= 1e-3)
+            mpc_dt_ = 0.12;
+        if (mpc_lateral_offsets_.empty())
+            mpc_lateral_offsets_ = {0.0, -0.65, 0.65};
+
         timer_period_sec_ = this->get_parameter("timer_period_sec").as_double();
         last_control_time_ = this->now();
+        controller_start_time_ = last_control_time_;
     }
 
     // Euclidean distance in 2D
@@ -311,6 +431,27 @@ private:
         speed_error_integral_ = 0.0;
         previous_speed_error_ = 0.0;
         have_previous_speed_error_ = false;
+        previous_cmd_speed_ = 0.0;
+        have_previous_cmd_speed_ = false;
+    }
+
+    double rate_limit_speed(double target_speed, double dt)
+    {
+        if (!have_previous_cmd_speed_)
+        {
+            previous_cmd_speed_ = std::clamp(target_speed, -max_speed_command_, max_speed_command_);
+            have_previous_cmd_speed_ = true;
+            return previous_cmd_speed_;
+        }
+
+        const double delta = target_speed - previous_cmd_speed_;
+        const double limit = delta >= 0.0
+            ? std::max(0.0, max_acceleration_) * dt
+            : std::max(0.0, max_deceleration_) * dt;
+
+        previous_cmd_speed_ += std::clamp(delta, -limit, limit);
+        previous_cmd_speed_ = std::clamp(previous_cmd_speed_, -max_speed_command_, max_speed_command_);
+        return previous_cmd_speed_;
     }
 
     double compute_dt_seconds()
@@ -356,6 +497,103 @@ private:
         );
 
         return clamp_signed_speed(target_speed + pid_correction);
+    }
+
+    double opponent_forward_distance() const
+    {
+        if (!opponent_state_is_fresh())
+            return std::numeric_limits<double>::infinity();
+
+        const double dx = opponent_x_ - x_;
+        const double dy = opponent_y_ - y_;
+        const double forward = std::cos(yaw_) * dx + std::sin(yaw_) * dy;
+        const double lateral = std::abs(-std::sin(yaw_) * dx + std::cos(yaw_) * dy);
+
+        if (forward < 0.0 || lateral > 1.5)
+            return std::numeric_limits<double>::infinity();
+
+        return forward;
+    }
+
+    double speed_for_steering(double requested_speed, double steering) const
+    {
+        const double abs_steer = std::abs(steering);
+        if (abs_steer <= sharp_turn_threshold_)
+            return requested_speed;
+
+        const double ratio = std::clamp(
+            (abs_steer - sharp_turn_threshold_) /
+            std::max(1e-3, max_steering_angle_ - sharp_turn_threshold_),
+            0.0,
+            1.0);
+        return requested_speed * (1.0 - ratio) + turn_speed_ * ratio;
+    }
+
+    double speed_for_obstacle(double requested_speed, const MpcDecision & decision) const
+    {
+        if (decision.active || !decision.opponent_relevant)
+            return requested_speed;
+
+        const double forward = opponent_forward_distance();
+        if (!std::isfinite(forward) || forward >= obstacle_slowdown_distance_)
+            return requested_speed;
+
+        if (forward <= obstacle_stop_distance_)
+            return std::min(requested_speed, close_obstacle_speed_);
+
+        const double ratio = (forward - obstacle_stop_distance_) /
+            std::max(1e-3, obstacle_slowdown_distance_ - obstacle_stop_distance_);
+        const double capped_speed = close_obstacle_speed_ +
+            ratio * (requested_speed - close_obstacle_speed_);
+        return std::min(requested_speed, capped_speed);
+    }
+
+    double opponent_follow_penalty() const
+    {
+        if (!opponent_state_is_fresh())
+            return 0.0;
+
+        const double forward = opponent_forward_distance();
+        if (!std::isfinite(forward) || forward >= mpc_following_gap_)
+            return 0.0;
+
+        const double gap = std::max(0.0, mpc_following_gap_ - forward);
+        return mpc_follow_penalty_ * gap * gap;
+    }
+
+    double opponent_lateral_velocity() const
+    {
+        if (!opponent_state_is_fresh())
+            return 0.0;
+
+        const double opp_vx = opponent_speed_ * std::cos(opponent_yaw_);
+        const double opp_vy = opponent_speed_ * std::sin(opponent_yaw_);
+        return -std::sin(yaw_) * opp_vx + std::cos(yaw_) * opp_vy;
+    }
+
+    double preferred_overtake_side() const
+    {
+        if (!opponent_state_is_fresh())
+            return 0.0;
+
+        const double dx = opponent_x_ - x_;
+        const double dy = opponent_y_ - y_;
+        const double forward = std::cos(yaw_) * dx + std::sin(yaw_) * dy;
+        const double lateral = -std::sin(yaw_) * dx + std::cos(yaw_) * dy;
+        if (forward < -0.2 || forward > mpc_detection_distance_)
+            return 0.0;
+
+        const double lateral_velocity = opponent_lateral_velocity();
+        if (lateral_velocity > 0.15)
+            return -1.0;
+        if (lateral_velocity < -0.15)
+            return 1.0;
+        if (lateral > 0.15)
+            return -1.0;
+        if (lateral < -0.15)
+            return 1.0;
+
+        return 0.0;
     }
 
     bool compute_tracking_errors(TrackingErrors & errors) const
@@ -557,12 +795,40 @@ private:
         have_odom_ = true;
     }
 
+    void opponent_odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
+    {
+        opponent_x_ = msg->pose.pose.position.x;
+        opponent_y_ = msg->pose.pose.position.y;
+        opponent_speed_ = msg->twist.twist.linear.x;
+
+        auto q = msg->pose.pose.orientation;
+        tf2::Quaternion quat(q.x, q.y, q.z, q.w);
+
+        double roll, pitch, yaw;
+        tf2::Matrix3x3(quat).getRPY(roll, pitch, yaw);
+        opponent_yaw_ = yaw;
+
+        last_opponent_stamp_ = this->now();
+        have_opponent_ = true;
+    }
+
     // -------------------------------------------------
     // Path callback:
     // stores the newest global path from /plan
     // -------------------------------------------------
     void path_callback(const nav_msgs::msg::Path::SharedPtr msg)
     {
+        const rclcpp::Time path_stamp(msg->header.stamp);
+        if (path_stamp.nanoseconds() > 0 && path_stamp < controller_start_time_)
+        {
+            RCLCPP_WARN(this->get_logger(),
+                        "Ignoring stale retained path on %s. path_stamp=%.3f controller_start=%.3f",
+                        path_topic_.c_str(),
+                        path_stamp.seconds(),
+                        controller_start_time_.seconds());
+            return;
+        }
+
         path_.clear();
         path_frame_ = msg->header.frame_id;
 
@@ -748,6 +1014,235 @@ private:
         return true;
     }
 
+    bool opponent_state_is_fresh() const
+    {
+        if (!have_opponent_)
+            return false;
+
+        const double age = (this->now() - last_opponent_stamp_).seconds();
+        return std::isfinite(age) && age <= mpc_opponent_timeout_sec_;
+    }
+
+    double path_yaw_at_index(int index) const
+    {
+        if (path_.size() < 2)
+            return yaw_;
+
+        index = std::clamp(index, 0, static_cast<int>(path_.size()) - 1);
+        int next = std::min(index + 1, static_cast<int>(path_.size()) - 1);
+        int prev = std::max(index - 1, 0);
+
+        if (next == index && prev != index)
+            next = index;
+        if (prev == next)
+            return yaw_;
+
+        return std::atan2(path_[next].y - path_[prev].y, path_[next].x - path_[prev].x);
+    }
+
+    double signed_lateral_to_path(double px, double py, int path_index) const
+    {
+        if (path_.empty())
+            return 0.0;
+
+        path_index = std::clamp(path_index, 0, static_cast<int>(path_.size()) - 1);
+        const double path_yaw = path_yaw_at_index(path_index);
+        const double dx = px - path_[path_index].x;
+        const double dy = py - path_[path_index].y;
+        return -std::sin(path_yaw) * dx + std::cos(path_yaw) * dy;
+    }
+
+    bool opponent_is_relevant(int nearest_idx) const
+    {
+        if (!enable_mpc_overtaking_ || !opponent_state_is_fresh() || path_.empty())
+            return false;
+
+        const double dx = opponent_x_ - x_;
+        const double dy = opponent_y_ - y_;
+        const double forward = std::cos(yaw_) * dx + std::sin(yaw_) * dy;
+        const double lateral = -std::sin(yaw_) * dx + std::cos(yaw_) * dy;
+
+        if (forward < -0.5 || forward > mpc_detection_distance_)
+            return false;
+
+        const double path_lateral = std::abs(signed_lateral_to_path(
+            opponent_x_, opponent_y_, nearest_idx));
+
+        return std::abs(lateral) < 2.2 || path_lateral < 1.8;
+    }
+
+    void shifted_target(double base_x,
+                        double base_y,
+                        int target_idx,
+                        double lateral_offset,
+                        double &shifted_x,
+                        double &shifted_y) const
+    {
+        const double path_yaw = path_yaw_at_index(target_idx);
+        shifted_x = base_x - std::sin(path_yaw) * lateral_offset;
+        shifted_y = base_y + std::cos(path_yaw) * lateral_offset;
+    }
+
+    double steering_to_target(double tx, double ty) const
+    {
+        const double dx = tx - x_;
+        const double dy = ty - y_;
+        const double x_local = std::cos(yaw_) * dx + std::sin(yaw_) * dy;
+        const double y_local = -std::sin(yaw_) * dx + std::cos(yaw_) * dy;
+        const double alpha = normalize_angle(std::atan2(y_local, std::max(1e-3, x_local)));
+        double ld = std::sqrt(dx * dx + dy * dy);
+        if (ld < 1e-3)
+            ld = 1e-3;
+
+        return std::clamp(
+            std::atan2(2.0 * wheelbase_ * std::sin(alpha), ld),
+            -max_steering_angle_,
+            max_steering_angle_);
+    }
+
+    double rollout_candidate_cost(double target_x,
+                                  double target_y,
+                                  double lateral_offset,
+                                  double candidate_speed,
+                                  double steering,
+                                  double &min_clearance) const
+    {
+        double ego_x = x_;
+        double ego_y = y_;
+        double ego_yaw = yaw_;
+        double opp_x = opponent_x_;
+        double opp_y = opponent_y_;
+
+        const double opp_vx = opponent_speed_ * std::cos(opponent_yaw_);
+        const double opp_vy = opponent_speed_ * std::sin(opponent_yaw_);
+
+        double cost = 0.0;
+        min_clearance = std::numeric_limits<double>::infinity();
+
+        for (int i = 1; i <= mpc_horizon_steps_; ++i)
+        {
+            ego_x += candidate_speed * std::cos(ego_yaw) * mpc_dt_;
+            ego_y += candidate_speed * std::sin(ego_yaw) * mpc_dt_;
+            ego_yaw = normalize_angle(
+                ego_yaw + (candidate_speed / wheelbase_) * std::tan(steering) * mpc_dt_);
+
+            opp_x += opp_vx * mpc_dt_;
+            opp_y += opp_vy * mpc_dt_;
+
+            const double clearance = distance_xy(ego_x, ego_y, opp_x, opp_y);
+            min_clearance = std::min(min_clearance, clearance);
+
+            if (clearance < mpc_safety_radius_)
+            {
+                const double violation = mpc_safety_radius_ - clearance;
+                cost += mpc_collision_weight_ * violation * violation;
+            }
+            else
+            {
+                cost += 1.0 / std::max(0.10, clearance - mpc_safety_radius_);
+            }
+        }
+
+        const double terminal_error = distance_xy(ego_x, ego_y, target_x, target_y);
+        cost += mpc_tracking_weight_ * terminal_error * terminal_error;
+        cost += mpc_offset_weight_ * std::abs(lateral_offset);
+        cost += mpc_steering_weight_ * std::abs(steering);
+        cost += mpc_speed_weight_ * std::abs(straight_speed_ - candidate_speed);
+
+        return cost;
+    }
+
+    MpcDecision compute_mpc_overtake_decision(double base_target_x,
+                                              double base_target_y,
+                                              int target_idx,
+                                              int nearest_idx)
+    {
+        MpcDecision decision;
+        decision.target_x = base_target_x;
+        decision.target_y = base_target_y;
+        decision.target_speed = std::min(straight_speed_, max_speed_command_);
+        decision.opponent_relevant = opponent_is_relevant(nearest_idx);
+
+        if (!decision.opponent_relevant)
+        {
+            mpc_overtake_active_ = false;
+            return decision;
+        }
+
+        double straight_x = base_target_x;
+        double straight_y = base_target_y;
+        shifted_target(base_target_x, base_target_y, target_idx, 0.0, straight_x, straight_y);
+        double straight_clearance = 0.0;
+        const double straight_steer = steering_to_target(straight_x, straight_y);
+        const double straight_candidate_speed = std::min(straight_speed_, max_speed_command_);
+        const double straight_cost = rollout_candidate_cost(
+            straight_x, straight_y, 0.0, straight_candidate_speed, straight_steer, straight_clearance);
+
+        double best_cost = straight_cost;
+        double best_clearance = straight_clearance;
+        double best_x = straight_x;
+        double best_y = straight_y;
+        double best_offset = 0.0;
+        double best_speed = straight_candidate_speed;
+
+        const double follow_penalty = opponent_follow_penalty();
+        const double adjusted_straight_cost = straight_cost + follow_penalty;
+        const double preferred_side = preferred_overtake_side();
+
+        for (const double offset : mpc_lateral_offsets_)
+        {
+            double tx = base_target_x;
+            double ty = base_target_y;
+            shifted_target(base_target_x, base_target_y, target_idx, offset, tx, ty);
+
+            const double candidate_speed = std::abs(offset) > 1e-3
+                ? std::min(mpc_overtake_speed_, max_speed_command_)
+                : std::min(mpc_follow_speed_, max_speed_command_);
+            const double steering = steering_to_target(tx, ty);
+
+            double min_clearance = 0.0;
+            const double cost = rollout_candidate_cost(
+                tx, ty, offset, candidate_speed, steering, min_clearance);
+
+            double side_bias = 0.0;
+            if (std::abs(offset) > 1e-3 && preferred_side != 0.0)
+            {
+                side_bias = (offset * preferred_side > 0.0)
+                    ? -mpc_side_bias_weight_
+                    : mpc_side_bias_weight_;
+            }
+
+            const double biased_cost = cost + side_bias;
+
+            if (biased_cost < best_cost)
+            {
+                best_cost = biased_cost;
+                best_clearance = min_clearance;
+                best_x = tx;
+                best_y = ty;
+                best_offset = offset;
+                best_speed = candidate_speed;
+            }
+        }
+
+        const bool useful_offset = std::abs(best_offset) > 1e-3 &&
+            best_cost < (adjusted_straight_cost - mpc_activation_margin_);
+        const bool corridor_pressure = follow_penalty > 0.0 ||
+            straight_clearance < (mpc_safety_radius_ + mpc_activation_margin_);
+        mpc_overtake_active_ = corridor_pressure && useful_offset;
+
+        decision.active = mpc_overtake_active_;
+        decision.target_x = mpc_overtake_active_ ? best_x : base_target_x;
+        decision.target_y = mpc_overtake_active_ ? best_y : base_target_y;
+        decision.target_speed = mpc_overtake_active_
+            ? best_speed
+            : std::min(straight_speed_, max_speed_command_);
+        decision.lateral_offset = mpc_overtake_active_ ? best_offset : 0.0;
+        decision.cost = best_cost;
+        decision.min_predicted_clearance = best_clearance;
+        return decision;
+    }
+
     // -------------------------------------------------
     // Main controller loop
     // -------------------------------------------------
@@ -811,6 +1306,11 @@ private:
         if (target_idx > last_progress_idx_)
             last_progress_idx_ = target_idx;
 
+        const MpcDecision mpc_decision = compute_mpc_overtake_decision(
+            target_x, target_y, target_idx, nearest_idx);
+        target_x = mpc_decision.target_x;
+        target_y = mpc_decision.target_y;
+
         // Vector from robot to target in world frame
         const double dx = target_x - x_;
         const double dy = target_y - y_;
@@ -843,7 +1343,7 @@ private:
         {
             // Target angle relative to front-driving direction
             alpha = std::atan2(y_local, x_local);
-            target_speed = speed_;
+            target_speed = mpc_decision.target_speed;
         }
         // -------------------------------------------------
         // Reverse mode
@@ -872,9 +1372,15 @@ private:
         if (steering > max_steering_angle_) steering = max_steering_angle_;
         if (steering < -max_steering_angle_) steering = -max_steering_angle_;
 
-        // Build a simple speed reference profile before closed-loop tracking
-        if (std::abs(steering) > sharp_turn_threshold_)
+        if (!reverse_mode_)
+        {
+            target_speed = speed_for_steering(target_speed, steering);
+            target_speed = speed_for_obstacle(target_speed, mpc_decision);
+        }
+        else if (std::abs(steering) > sharp_turn_threshold_)
+        {
             target_speed *= turn_speed_reduction_factor_;
+        }
 
         // Slow down near goal while keeping the sign of speed
         if (dist_to_goal < goal_slowdown_distance_)
@@ -888,9 +1394,10 @@ private:
         }
 
         // Closed-loop longitudinal control: follow target_speed using odometry feedback
-        const double cmd_speed = use_speed_pid_
+        const double unconstrained_cmd_speed = use_speed_pid_
             ? compute_pid_speed_command(target_speed, dt)
             : clamp_signed_speed(target_speed);
+        const double cmd_speed = rate_limit_speed(unconstrained_cmd_speed, dt);
 
         // Publish control command
         ackermann_msgs::msg::AckermannDriveStamped msg;
@@ -912,6 +1419,7 @@ private:
         RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 500,
                              "\n[Robot] mode=%s x=%.2f y=%.2f yaw=%.2f | "
                              "\n[Path] nearest=%d progress=%d target_idx=%d target=(%.2f, %.2f) x_local=%.2f y_local=%.2f dist_goal=%.2f | "
+                             "\n[MPC] active=%s offset=%.2f clearance=%.2f cost=%.1f | "
                              "\n[Errors] cte=%.3f heading_err=%.3f alpha=%.2f | "
                              "\n[Control] steer=%.2f v_ref=%.2f v_meas=%.2f v_err=%.2f v_cmd=%.2f",
                              reverse_mode_ ? "REVERSE" : "FORWARD",
@@ -920,6 +1428,10 @@ private:
                              target_x, target_y,
                              x_local, y_local,
                              dist_to_goal,
+                             mpc_decision.active ? "yes" : "no",
+                             mpc_decision.lateral_offset,
+                             mpc_decision.min_predicted_clearance,
+                             mpc_decision.cost,
                              have_tracking_errors ? tracking_errors.cross_track_error : 0.0,
                              have_tracking_errors ? tracking_errors.heading_error : 0.0,
                              alpha,

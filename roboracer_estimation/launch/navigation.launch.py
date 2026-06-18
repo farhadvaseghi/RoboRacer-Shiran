@@ -19,6 +19,7 @@ def generate_launch_description():
     nav2_stack = GroupAction([
         # Keep Nav2's internal controller output away from the simulator's
         # teleoperation input. Only roboracer_control publishes vehicle commands.
+        SetRemap(src='/plan', dst='/nav2/plan_raw'),
         SetRemap(src='/cmd_vel', dst='/navigation/cmd_vel'),
         SetRemap(src='/cmd_vel_smoothed', dst='/navigation/cmd_vel'),
         IncludeLaunchDescription(

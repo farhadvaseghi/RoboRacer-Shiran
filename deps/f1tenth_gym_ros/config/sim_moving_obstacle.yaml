@@ -21,8 +21,7 @@ bridge:
     map_path: 'OVERRIDDEN_BY_LAUNCH'
     map_img_ext: '.pgm'
 
-    # Set to 2 to re-enable the opponent car for dynamic overtaking experiments.
-    num_agent: 1
+    num_agent: 2
 
     # Start both cars side by side like a race grid: same forward position,
     # small lateral separation, same heading.
