@@ -117,7 +117,11 @@ class GymBridge(Node):
         scan_beams = self.get_parameter('scan_beams').value
         self.angle_min = -scan_fov / 2.
         self.angle_max = scan_fov / 2.
-        self.angle_inc = scan_fov / scan_beams
+        # The gym produces scan_beams-1 rays due to float truncation in the
+        # range finder. angle_inc must satisfy: scan_fov/angle_inc + 1 == actual
+        # beam count, i.e. angle_inc = scan_fov / (actual_beams - 1).
+        # actual_beams = scan_beams - 1, so denominator = scan_beams - 2.
+        self.angle_inc = scan_fov / (scan_beams - 2)
         self.ego_namespace = self.get_parameter('ego_namespace').value
         ego_odom_topic = self.ego_namespace + '/' + self.get_parameter('ego_odom_topic').value
         self.scan_distance_to_base_link = self.get_parameter('scan_distance_to_base_link').value

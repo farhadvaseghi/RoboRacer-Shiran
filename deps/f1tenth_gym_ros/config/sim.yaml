@@ -61,4 +61,4 @@ bridge:
     stheta1: 0.0
 
     # teleop
-    kb_teleop: False
+    kb_teleop: True

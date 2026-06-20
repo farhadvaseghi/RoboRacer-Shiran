@@ -35,7 +35,7 @@ slam_toolbox:
     minimum_travel_heading: 0.3
 
     # Scan buffer for loop closure
-    throttle_scans: 1
+    throttle_scans: 25
     scan_buffer_size: 10
     scan_buffer_maximum_scan_distance: 10.0
 

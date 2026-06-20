@@ -63,10 +63,12 @@ configuration, Nav2 configuration, maps, and the retained path relay.
 
 Important files:
 
+- `launch/slam_mapping.launch.py`: SLAM mapping run — no prior map, no opponent.
 - `launch/sim.launch.py`: simulator, RViz, adaptive covariance node, and EKF.
 - `launch/navigation.launch.py`: Nav2 navigation/planning and path relay.
 - `launch/estimation.launch.py`: standalone estimation launch for simulation or
   real hardware.
+- `config/slam_params.yaml`: slam_toolbox async mapping configuration.
 - `config/ekf_sim.yaml`: simulator EKF configuration using
   `ego_racecar/odom` and `ego_racecar/base_link` frames.
 - `config/ekf_real.yaml`: real-hardware sensor fusion configuration.
@@ -107,6 +109,47 @@ source install/setup.bash
 
 Rebuild after changing C++ source, launch files, parameters, or Python entry
 points.
+
+## SLAM Mapping
+
+Before running the full navigation stack you need a map of the track. The
+`slam_mapping` launch runs the simulator with a single ego car and
+`slam_toolbox` in async mapping mode. The pre-built map is intentionally not
+published to ROS — slam_toolbox builds the map from scratch using lidar scans.
+
+### Terminal 1: SLAM mapping launch
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/ros2_ws/install/setup.bash
+ros2 launch roboracer_estimation slam_mapping.launch.py
+```
+
+### Terminal 2: Teleop (drive the car around the track)
+
+```bash
+source /opt/ros/humble/setup.bash
+source ~/ros2_ws/install/setup.bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard
+```
+
+Drive the car around the full track at least once so slam_toolbox can observe
+all walls and close the loop. The map is updated in RViz every few seconds.
+
+### Terminal 3: Save the finished map
+
+Once the map looks complete in RViz, save it:
+
+```bash
+ros2 run nav2_map_server map_saver_cli -f ~/maps/my_track
+```
+
+This writes `~/maps/my_track.pgm` (image) and `~/maps/my_track.yaml`
+(metadata). Copy the files into `roboracer_estimation/maps/` and update
+`ROBORACER_MAP_NAME` in the relevant launch files to use the new map for
+navigation.
+
+---
 
 ## Run
 
