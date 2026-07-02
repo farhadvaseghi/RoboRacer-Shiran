@@ -294,7 +294,10 @@ local_costmap:
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
-        observation_sources: scan
+        # 'camera' added by roboracer_camera: a synthetic LaserScan of obstacles
+        # that stand above/below the LiDAR's single slice (/camera_scan). The
+        # 'scan' (Hokuyo) source is unchanged. Remove 'camera' to disable.
+        observation_sources: scan camera
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -303,6 +306,14 @@ local_costmap:
           data_type: "LaserScan"
           raytrace_max_range: 12.0
           obstacle_max_range: 10.0
+        camera:
+          topic: /camera_scan
+          max_obstacle_height: 2.0
+          clearing: true
+          marking: true
+          data_type: "LaserScan"
+          raytrace_max_range: 8.0
+          obstacle_max_range: 7.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
@@ -327,7 +338,8 @@ global_costmap:
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: true
-        observation_sources: scan
+        # 'camera' added by roboracer_camera (see local_costmap note above).
+        observation_sources: scan camera
         scan:
           topic: /scan
           max_obstacle_height: 2.0
@@ -336,6 +348,14 @@ global_costmap:
           data_type: "LaserScan"
           raytrace_max_range: 12.0
           obstacle_max_range: 10.0
+        camera:
+          topic: /camera_scan
+          max_obstacle_height: 2.0
+          clearing: true
+          marking: true
+          data_type: "LaserScan"
+          raytrace_max_range: 8.0
+          obstacle_max_range: 7.0
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
