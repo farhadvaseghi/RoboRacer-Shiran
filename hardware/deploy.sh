@@ -14,9 +14,10 @@ scp "$PCREPO/roboracer_estimation/config/nav2_params_real.yaml" \
 scp "$PCREPO/roboracer_estimation/launch/autonomous_real.launch.py" \
     "$CAR:$CARREPO/roboracer_estimation/launch/autonomous_real.launch.py"
 
-echo "== copying helper / logging scripts into ~/rr =="
+echo "== copying helper / logging scripts + docs into ~/rr =="
 ssh "$CAR" 'mkdir -p ~/rr'
 scp "$PCRR/"rr_*.sh "$CAR:~/rr/"
+scp "$PCRR/LOCALIZATION.md" "$CAR:~/rr/"
 ssh "$CAR" 'chmod +x ~/rr/*.sh && echo "chmod ok"'
 
 echo "== DONE. Next on the car: colcon build (see guide step 2) =="
