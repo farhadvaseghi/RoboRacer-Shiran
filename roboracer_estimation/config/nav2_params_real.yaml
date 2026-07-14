@@ -157,7 +157,7 @@ controller_server:
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
       # ---- FIRST-RUN SPEED CAP (raise after a clean lap) ----
-      desired_linear_vel: 0.5
+      desired_linear_vel: 0.3
       min_approach_linear_velocity: 0.05
       max_allowed_time_to_collision_up_to_carrot: 1.0
       # Lookahead
@@ -172,7 +172,7 @@ controller_server:
       regulated_linear_scaling_min_radius: 0.9
       regulated_linear_scaling_min_speed: 0.25
       # Collision detection
-      use_collision_detection: true
+      use_collision_detection: false
       transform_tolerance: 0.2
       # Ackermann: NEVER rotate in place; no reversing on the first run.
       use_rotate_to_heading: false
@@ -195,14 +195,14 @@ planner_server:
       max_planning_time: 5.0
       # DUBIN = forward-only (safer for first run). Switch to REEDS_SHEPP to
       # allow reverse maneuvers once the car drives cleanly forward.
-      motion_model_for_search: "DUBIN"
+      motion_model_for_search: "REEDS_SHEPP"
       angle_quantization_bins: 72
       analytic_expansion_ratio: 3.5
       analytic_expansion_max_length: 3.0
       # Car kinematics: wheelbase 0.25 m, |steer| ~0.32 rad -> R_min ~0.75 m.
       # 0.90 keeps turns gentle for the first run; lower toward 0.75 if the
       # planner fails to find a path in tight sections.
-      minimum_turning_radius: 0.90
+      minimum_turning_radius: 0.40
       reverse_penalty: 2.0
       change_penalty: 0.15
       non_straight_penalty: 1.05
@@ -306,7 +306,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.45
+        inflation_radius: 0.25
       always_send_full_costmap: true
 
 global_costmap:
@@ -339,5 +339,5 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.55
+        inflation_radius: 0.25
       always_send_full_costmap: true
