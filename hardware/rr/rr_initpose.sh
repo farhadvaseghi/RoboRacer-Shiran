@@ -2,6 +2,7 @@
 # rr_initpose.sh X Y YAW — tell amcl where the car starts on the map (map frame).
 # Example: rr_initpose.sh 0 0 0   (car at the SLAM origin, facing +x)
 # Equivalent to RViz "2D Pose Estimate". Coordinates are in METERS, yaw in RAD.
+export ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-7}
 source /opt/ros/humble/setup.bash 2>/dev/null
 source ~/roboracer_ws/install/setup.bash 2>/dev/null
 

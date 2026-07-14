@@ -5,6 +5,7 @@
 # Run it any time. Run it AFTER sending a goal to also check B6 (plan/cmd).
 # Each line is PASS / FAIL / -- (not applicable yet) with a hint on failure.
 
+export ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-7}
 source /opt/ros/humble/setup.bash 2>/dev/null
 source ~/roboracer_ws/install/setup.bash 2>/dev/null
 
@@ -21,9 +22,9 @@ na()   { say "  --    $1 ($2)"; }
 
 has_topic() { ros2 topic list 2>/dev/null | grep -qx "$1"; }
 has_node()  { ros2 node list  2>/dev/null | grep -qx "$1"; }
-msg_once()  { timeout "${2:-5}" ros2 topic echo "$1" --once >/dev/null 2>&1; }   # 0 if a msg arrives
-rate_of()   { timeout 5 ros2 topic hz "$1" 2>/dev/null | grep -m1 'average rate' | grep -oE '[0-9]+\.[0-9]+' | head -1; }
-tf_ok()     { timeout 5 ros2 run tf2_ros tf2_echo "$1" "$2" 2>/dev/null | grep -qE 'Translation|At time'; }
+msg_once()  { timeout --kill-after=2 "${2:-5}" ros2 topic echo "$1" --once >/dev/null 2>&1; }   # 0 if a msg arrives
+rate_of()   { timeout --kill-after=2 8 bash -c 'ros2 topic hz "$1" 2>/dev/null | grep -m1 "average rate" | grep -oE "[0-9]+\.[0-9]+" | head -1' _ "$1"; }
+tf_ok()     { timeout --kill-after=2 12 bash -c 'ros2 run tf2_ros tf2_echo "$1" "$2" 2>/dev/null | grep -m1 -qE "Translation|At time"' _ "$1" "$2"; }
 lc_state()  { ros2 lifecycle get "$1" 2>/dev/null | head -1; }
 
 say "===== RoboRacer autonomous health check  $TS ====="
@@ -34,10 +35,17 @@ say ""
 say "[B1] Sensors / drive stack  (source: ~/t_stack.sh)"
 [ -e /dev/sensors/vesc ] && ok "VESC symlink /dev/sensors/vesc" \
   || bad "VESC symlink missing" "is the VESC USB plugged in? is t_stack running?"
-r=$(rate_of /scan);  [ -n "$r" ] && ok "/scan @ ${r} Hz" \
-  || bad "/scan not publishing" "LiDAR down: check eno1 link to 192.168.0.10 (Hokuyo)"
-r=$(rate_of /odom);  [ -n "$r" ] && ok "/odom @ ${r} Hz" \
-  || bad "/odom not publishing" "VESC/vesc_to_odom down: check t_stack log"
+if msg_once /scan 8; then
+  ok "/scan publishing"
+else
+  bad "/scan not publishing" "LiDAR down: check eno1 link to 192.168.0.10 (Hokuyo)"
+fi
+
+if msg_once /odom 8; then
+  ok "/odom publishing"
+else
+  bad "/odom not publishing" "VESC/vesc_to_odom down: check t_stack log"
+fi
 say ""
 
 # ---------- B2: BASE TF ----------

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # rr_record.sh [name] — rosbag the full autonomous chain for post-run debugging.
 # Records sensors, TF, localization, plan, commands, diagnostics. One bag per run.
+export ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-7}
 source /opt/ros/humble/setup.bash 2>/dev/null
 source ~/roboracer_ws/install/setup.bash 2>/dev/null
 

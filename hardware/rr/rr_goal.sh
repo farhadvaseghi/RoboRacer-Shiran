@@ -3,6 +3,7 @@
 # Example: rr_goal.sh 5.0 1.0 0
 # Equivalent to RViz "2D Goal Pose" / "Nav2 Goal". Meters + radians.
 # The car will plan a path from its current (amcl) pose to here and drive it.
+export ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-7}
 source /opt/ros/humble/setup.bash 2>/dev/null
 source ~/roboracer_ws/install/setup.bash 2>/dev/null
 
