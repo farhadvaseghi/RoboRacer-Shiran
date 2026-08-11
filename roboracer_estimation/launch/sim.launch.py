@@ -78,7 +78,17 @@ def generate_launch_description():
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(gym_launch),
-            launch_arguments={'use_rviz': 'true'}.items(),
+            # The installed gym_bridge_launch reads map_name/config_name as ARGS (it does not
+            # read the ROBORACER_* env vars above), so pass them explicitly. solid_oval_track +
+            # the moving-obstacle config are what actually exist in the active install.
+            launch_arguments={
+                'use_rviz': 'true',
+                'map_name': 'solid_oval_track',
+                'config_name': 'sim_moving_obstacle.yaml',
+                # Free /goal_pose for Nav2 (ego navigation). Without this the gym
+                # teleports the OPPONENT car to every Nav2 goal — see gym_bridge_launch.
+                'opp_reset_topic': '/opp_reset_pose',
+            }.items(),
         ),
 
         moving_obstacle,

@@ -29,6 +29,8 @@ setup(
         'console_scripts': [
             'depth_to_scan = roboracer_camera.depth_to_scan_node:main',
             'opponent_detector = roboracer_camera.opponent_detector:main',
+            'opponent_odom_adapter = roboracer_camera.opponent_odom_adapter:main',
+            'lidar_gap_safety = roboracer_camera.lidar_gap_safety:main',
             'map_odom_relay = roboracer_camera.map_odom_relay:main',
             'person_detector = roboracer_camera.person_detector:main',
             'emergency_brake = roboracer_camera.emergency_brake:main',

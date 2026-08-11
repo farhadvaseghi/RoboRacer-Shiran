@@ -33,10 +33,15 @@ ekf_filter_node:
     odom0: /estimation/sim_odom_adaptive
     # State vector: [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
     # Fuse:          x  y  -   -     -     yaw  vx  vy  -    -      -      vyaw  -   -   -
+    # Fuse the gym's ABSOLUTE pose (x, y, yaw) only. Previously vx/vyaw were also
+    # fused and (being trusted more, cov 0.01 < pose 0.05) made the filter lag /
+    # under-report position during fast motion — the controller then thought it was
+    # ~5 m behind and overshot goals into walls. Position-only fusion tracks the
+    # (perfect) sim pose exactly; the filter derives velocity from pose deltas.
     odom0_config: [true,  true,  false,
                    false, false, true,
-                   true,  true,  false,
-                   false, false, true,
+                   false, false, false,
+                   false, false, false,
                    false, false, false]
     odom0_queue_size: 5
     odom0_differential: false

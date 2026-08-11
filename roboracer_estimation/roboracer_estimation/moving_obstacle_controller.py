@@ -96,13 +96,13 @@ class MovingObstacleController(Node):
         self._drive_pub.publish(msg)
 
     def _oval_follow_command(self, x: float, y: float, yaw: float) -> tuple[float, float]:
-        if x < 20.0 and y < 2.5:
-            tx = min(20.0, x + STRAIGHT_LOOKAHEAD)
+        if x < 60.0 and y < 2.5:
+            tx = min(60.0, x + STRAIGHT_LOOKAHEAD)
             offset, activity = bypass_profile(tx)
             ty = BOTTOM_STRAIGHT_Y + offset
             target_speed = CRUISE_SPEED - activity * (CRUISE_SPEED - BYPASS_SPEED)
-        elif x >= 20.0 and y <= 5.0:
-            cx, cy, radius = 20.0, 2.5, 2.5
+        elif x >= 60.0 and y <= 5.0:
+            cx, cy, radius = 60.0, 2.5, 2.5
             ang = math.atan2(y - cy, x - cx)
             ang = max(-math.pi / 2.0, min(math.pi / 2.0, ang + TURN_LOOKAHEAD / radius))
             tx = cx + radius * math.cos(ang)

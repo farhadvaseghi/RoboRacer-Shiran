@@ -153,6 +153,7 @@ private:
     double min_lookahead_distance_;
     double max_lookahead_distance_;
     double lookahead_time_;
+    double max_progress_search_distance_;
     double speed_;
     double reverse_speed_;
     double max_steering_angle_;
@@ -234,6 +235,10 @@ private:
         this->declare_parameter<double>("min_lookahead_distance", 0.6);
         this->declare_parameter<double>("max_lookahead_distance", 2.0);
         this->declare_parameter<double>("lookahead_time", 0.8);
+        // Limit nearest-point matching to the next few metres of path. An
+        // unbounded search can jump across a loop when a much later segment
+        // passes close to the car (for example, near a start/finish line).
+        this->declare_parameter<double>("max_progress_search_distance", 3.0);
         this->declare_parameter<double>("speed", 2.0);
         this->declare_parameter<double>("reverse_speed", 2.0);
         this->declare_parameter<double>("max_steering_angle", 0.4);
@@ -306,6 +311,8 @@ private:
         min_lookahead_distance_ = this->get_parameter("min_lookahead_distance").as_double();
         max_lookahead_distance_ = this->get_parameter("max_lookahead_distance").as_double();
         lookahead_time_ = this->get_parameter("lookahead_time").as_double();
+        max_progress_search_distance_ =
+            this->get_parameter("max_progress_search_distance").as_double();
         speed_ = this->get_parameter("speed").as_double();
         reverse_speed_ = this->get_parameter("reverse_speed").as_double();
         max_steering_angle_ = this->get_parameter("max_steering_angle").as_double();
@@ -360,6 +367,12 @@ private:
         {
             throw std::invalid_argument(
                 "lookahead distances must satisfy 0 < min_lookahead_distance <= max_lookahead_distance");
+        }
+
+        if (max_progress_search_distance_ <= 0.0)
+        {
+            throw std::invalid_argument(
+                "max_progress_search_distance must be greater than zero");
         }
 
         if (mpc_horizon_steps_ < 1)
@@ -868,8 +881,10 @@ private:
     }
 
     // -------------------------------------------------
-    // Find nearest point on path, but only forward from the
-    // current progress index. This avoids jumping backward.
+    // Find the nearest point only within a bounded arc-length window ahead of
+    // the current progress index. Searching the entire remainder prevents
+    // backward jumps, but it can still jump forward across a loop when a later
+    // segment passes spatially close to the car.
     // -------------------------------------------------
     int find_nearest_forward_index()
     {
@@ -884,8 +899,18 @@ private:
         int nearest_idx = start_idx;
         double min_dist = std::numeric_limits<double>::max();
 
+        double distance_ahead = 0.0;
         for (int i = start_idx; i < static_cast<int>(path_.size()); ++i)
         {
+            if (i > start_idx)
+            {
+                distance_ahead += distance_xy(
+                    path_[i - 1].x, path_[i - 1].y,
+                    path_[i].x, path_[i].y);
+                if (distance_ahead > max_progress_search_distance_)
+                    break;
+            }
+
             double d = distance_xy(x_, y_, path_[i].x, path_[i].y);
             if (d < min_dist)
             {
@@ -963,6 +988,8 @@ private:
             std::min(start_idx, static_cast<int>(path_.size()) - 2)
         );
 
+        double distance_ahead = 0.0;
+        int fallback_idx = start_idx;
         for (int i = start_idx; i < static_cast<int>(path_.size()) - 1; ++i)
         {
             const double x1 = path_[i].x;
@@ -972,6 +999,11 @@ private:
 
             const double dx = x2 - x1;
             const double dy = y2 - y1;
+            const double segment_length = std::hypot(dx, dy);
+            if (distance_ahead + segment_length > max_progress_search_distance_)
+                break;
+            distance_ahead += segment_length;
+            fallback_idx = i + 1;
 
             const double fx = x1 - x_;
             const double fy = y1 - y_;
@@ -1007,10 +1039,13 @@ private:
             }
         }
 
-        // Fallback to final goal point
-        target_x = path_.back().x;
-        target_y = path_.back().y;
-        target_idx = static_cast<int>(path_.size()) - 1;
+        // Stay inside the bounded local section even if the lookahead circle
+        // does not intersect it. Falling back to path_.back() is unsafe on a
+        // loop because it recreates the same start-to-finish shortcut that the
+        // bounded nearest-point search is meant to prevent.
+        target_x = path_[fallback_idx].x;
+        target_y = path_[fallback_idx].y;
+        target_idx = fallback_idx;
         return true;
     }
 
@@ -1303,8 +1338,11 @@ private:
         if (!ok)
             return;
 
-        if (target_idx > last_progress_idx_)
-            last_progress_idx_ = target_idx;
+        // target_idx is a steering lookahead, not proof that the vehicle has
+        // physically reached that part of the path. Persisting it as progress
+        // advances roughly one lookahead distance on every control tick and
+        // can race to the end of a long path while the car is stationary.
+        // Only the nearest-point match above may advance last_progress_idx_.
 
         const MpcDecision mpc_decision = compute_mpc_overtake_decision(
             target_x, target_y, target_idx, nearest_idx);

@@ -11,14 +11,21 @@ class PathRelay(Node):
     def __init__(self):
         super().__init__('path_relay')
 
-        self.declare_parameter('use_forward_oval_route', True)
+        # use_forward_oval_route=False -> relay Nav2's REAL SMAC plan, which is
+        # computed on the costmap built from live /scan (LiDAR), so the car
+        # follows a wall-aware path AROUND the track instead of a fixed odom oval.
+        # The old default True built a hardcoded oval whose geometry (right_x=20)
+        # was stale for the resized 60 m track, so it cut through the infield wall.
+        self.declare_parameter('use_forward_oval_route', False)
         self.declare_parameter('segment_length', 3.0)
         self.declare_parameter('waypoint_spacing', 0.20)
         self.declare_parameter('goal_reached_threshold', 0.35)
-        self.declare_parameter('bottom_y', -0.60)
-        self.declare_parameter('top_y', 4.40)
+        # Track lane-centre oval (only used if use_forward_oval_route is re-enabled),
+        # corrected for the 60 m track: centre y=2.5, lane radius 3.25.
+        self.declare_parameter('bottom_y', -0.75)
+        self.declare_parameter('top_y', 5.75)
         self.declare_parameter('left_x', 0.0)
-        self.declare_parameter('right_x', 20.0)
+        self.declare_parameter('right_x', 60.0)
         self.declare_parameter('odom_topic', '/odometry/filtered')
         self.declare_parameter('raw_plan_topic', '/nav2/plan_raw')
 

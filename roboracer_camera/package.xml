@@ -24,6 +24,7 @@
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>python3-sklearn</exec_depend>
+  <exec_depend>roboracer_perception</exec_depend>
   <!-- person_detector also needs ultralytics (pip) + a YOLOv8 model on hardware. -->
 
   <!-- ZED driver is launched separately; not a hard build/exec dep of this pkg. -->

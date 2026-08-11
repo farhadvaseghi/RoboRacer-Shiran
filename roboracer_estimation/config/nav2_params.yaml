@@ -101,6 +101,18 @@ planner_server:
       plugin: "nav2_smac_planner/SmacPlannerHybrid"
       motion_model_for_search: "REEDS_SHEPP"
       allow_reverse_expansion: true
+      # Startup vs planning-reliability balance. The 40 s startup was the R-S heuristic
+      # table = lookup_table_size / costmap_resolution per side. Downsample the costmap
+      # for planning (0.025 -> 0.05 m) so the table is 1/4 the cells (fast startup) while
+      # keeping a large 12 m heuristic RANGE (so A* doesn't exceed max_iterations and fail
+      # on far goals — the bug that made planning to (30,5.75) fail). Extra planning time
+      # + iteration headroom as a safety net.
+      downsample_costmap: true
+      downsampling_factor: 2
+      lookup_table_size: 12.0
+      max_planning_time: 10.0
+      max_iterations: 2000000
+      max_on_approach_iterations: 5000
       minimum_turning_radius: 0.85   # R = L/tan(δ_max) = 0.3302/tan(0.4) ≈ 0.78 m; 0.85 adds safety margin
       reverse_penalty: 10.0 #it was 2 before
       change_penalty: 10.0
