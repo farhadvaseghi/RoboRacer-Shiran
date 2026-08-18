@@ -5,7 +5,7 @@
 #   - frames: map -> odom -> base_link -> laser   (PLAIN frames, NOT ego_racecar/*)
 #   - odom topic: /odom        (vesc_to_odom, publishes odom->base_link TF)
 #   - scan topic: /scan        (Hokuyo, ~40 Hz)
-#   - wheelbase: 0.25 m, max steering ~0.32 rad -> min turning radius ~0.75 m
+#   - wheelbase: 0.324 m, max steering ~0.32 rad -> min turning radius ~1.0 m
 #   - hardware speed cap ~2.0 m/s (9250 erpm / 4532). FIRST RUN capped far below.
 #   - use_sim_time: false everywhere (no /clock on the car)
 #
@@ -199,10 +199,9 @@ planner_server:
       angle_quantization_bins: 72
       analytic_expansion_ratio: 3.5
       analytic_expansion_max_length: 3.0
-      # Car kinematics: wheelbase 0.25 m, |steer| ~0.32 rad -> R_min ~0.75 m.
-      # 0.90 keeps turns gentle for the first run; lower toward 0.75 if the
-      # planner fails to find a path in tight sections.
-      minimum_turning_radius: 0.40
+      # Car kinematics: wheelbase 0.324 m, |steer| ~0.32 rad -> R_min ~0.97 m.
+      # 1.0 keeps turns gentle
+      minimum_turning_radius: 1.0
       reverse_penalty: 2.0
       change_penalty: 0.15
       non_straight_penalty: 1.05
