@@ -113,7 +113,7 @@ planner_server:
       max_planning_time: 10.0
       max_iterations: 2000000
       max_on_approach_iterations: 5000
-      minimum_turning_radius: 0.85   # R = L/tan(δ_max) = 0.3302/tan(0.4) ≈ 0.78 m; 0.85 adds safety margin
+      minimum_turning_radius: 1.0   
       reverse_penalty: 10.0 #it was 2 before
       change_penalty: 10.0
       non_straight_penalty: 1.05
