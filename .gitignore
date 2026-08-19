@@ -1,12 +1,41 @@
-# ROS2 / colcon build artifacts
+# ROS 2 build artifacts
 build/
 install/
 log/
 
-# Common editor/system artifacts
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+
+# Pytest cache
+.pytest_cache/
+
+# Personal/local settings
+.claude/
+
+# IDE / OS
 .vscode/
-.idea/
-*.swp
-*.swo
 .DS_Store
 Thumbs.db
+
+# Recorded data
+*.bag
+*.bag.active
+*.db3
+*.mcap
+
+# ML model artifacts
+*.onnx
+*.pt
+*.pth
+*.h5
+*.pkl
+
+# Gazebo/other simulator experiments (not needed for f1tenth sim)
+launch/autodrive_sim.launch.py
+launch/gazebo_sim.launch.py
+tools/autodrive_bridge_patched.py
+tools/setup_gcp_vm.sh
+CLAUDE.md

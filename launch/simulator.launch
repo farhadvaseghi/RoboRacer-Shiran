@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <include file="$(find-pkg-share f1tenth_simulator)/launch/simulator.launch.py"/>
-</launch>

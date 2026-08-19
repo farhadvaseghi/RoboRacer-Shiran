@@ -1,0 +1,40 @@
+# roboracer_camera parameters (person detection + AEB + depth->scan).
+# Extrinsics (cam_*) come from zed_ground_calibration on the real car; the
+# defaults below are the nominal level-mount values from CLAUDE.md.
+
+person_detector:
+  ros__parameters:
+    rgb_topic: /zed/zed_node/rgb/image_rect_color
+    depth_topic: /zed/zed_node/depth/depth_registered
+    info_topic: /zed/zed_node/rgb/camera_info
+    model_path: yolov8n.pt
+    conf_threshold: 0.35
+    person_class_id: 0          # COCO 'person'
+    output_frame: base_link
+    min_depth: 0.3
+    max_depth: 8.0
+    cam_x: 0.270
+    cam_y: -0.005
+    cam_z: 0.155
+    cam_pitch: 0.0              # set from zed_ground_calibration
+
+emergency_brake:
+  ros__parameters:
+    drive_in_topic: /drive_nav
+    drive_out_topic: /drive
+    persons_topic: /perception/persons
+    stop_distance: 1.5          # brake if a person is closer than this (m)
+    release_distance: 1.9       # hysteresis: clear only beyond this (m)
+    half_width: 0.35            # danger-corridor half width (m)
+    min_forward: 0.0
+    persons_timeout: 0.5        # s; stale detections are ignored
+
+sim_person_publisher:
+  ros__parameters:
+    mode: opponent              # 'opponent' | 'scripted'
+    ego_odom_topic: /ego_racecar/odom
+    opp_odom_topic: /opp_racecar/odom
+    output_frame: base_link
+    publish_rate: 15.0
+    start_distance: 4.0         # scripted mode
+    closing_speed: 0.6
