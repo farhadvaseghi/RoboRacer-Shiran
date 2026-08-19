@@ -373,8 +373,6 @@ Each subsystem is developed on its own branch so five people can work in paralle
 
 ## 🤝 Team
 
-Five-member project team — package ownership stays separated so each subsystem can be developed and tested independently.
-
 <div align="center">
 
 | Contributor | GitHub | Subsystem |
