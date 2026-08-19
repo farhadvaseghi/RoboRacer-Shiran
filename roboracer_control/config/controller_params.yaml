@@ -1,0 +1,69 @@
+pure_pursuit_controller:
+  ros__parameters:
+    wheelbase: 0.3302
+    # New gym interface and namespaced frames.
+    drive_topic: /drive
+    odom_topic: /odometry/filtered
+    path_topic: /control/plan
+    base_frame: ego_racecar/base_link
+    odom_frame: ego_racecar/odom
+
+    # Scale lookahead with speed: 0.6 m at low speed, up to 2.0 m.
+    lookahead_distance: 1.0  # used only when velocity scaling is false
+    use_velocity_scaled_lookahead: true
+    min_lookahead_distance: 0.6
+    max_lookahead_distance: 2.0
+    lookahead_time: 0.8
+    # Never match the car against the entire remaining path: on a loop, a
+    # later segment can pass near the current one and cause a false jump.
+    max_progress_search_distance: 3.0
+    speed: 2.8
+    reverse_speed: 2.0
+    max_steering_angle: 0.4
+    goal_tolerance: 0.2
+    timer_period_sec: 0.05
+    min_speed_near_goal: 0.4
+    sharp_turn_threshold: 0.25
+    goal_slowdown_distance: 1.0
+    turn_speed_reduction_factor: 0.6
+    reverse_trigger_x: -0.15
+    forward_trigger_x: 0.15
+    pid_kp: 0.60
+    pid_ki: 0.05
+    pid_kd: 0.02
+    pid_integral_limit: 2.0
+    pid_output_limit: 1.0
+    max_speed_command: 3.8
+    straight_speed: 3.7
+    turn_speed: 1.45
+    close_obstacle_speed: 0.80
+    obstacle_slowdown_distance: 2.2
+    obstacle_stop_distance: 0.55
+    max_acceleration: 3.5
+    max_deceleration: 4.0
+    # The gym's Ackermann speed field is already a desired velocity. Its vehicle
+    # model closes the speed loop internally, so an additional PID causes overshoot.
+    use_speed_pid: false
+
+    # Predictive dynamic-overtaking layer. The controller keeps tracking Nav2's
+    # /control/plan, but shifts the local target around /opp_racecar/odom when
+    # a short-horizon rollout predicts the opponent is blocking the corridor.
+    enable_mpc_overtaking: true
+    opponent_odom_topic: /opp_racecar/odom
+    mpc_horizon_steps: 14
+    mpc_dt: 0.12
+    mpc_safety_radius: 0.46
+    mpc_detection_distance: 6.5
+    mpc_opponent_timeout_sec: 0.6
+    mpc_lateral_offsets: [0.0, -0.25, 0.25, -0.45, 0.45, -0.65, 0.65]
+    mpc_collision_weight: 1200.0
+    mpc_tracking_weight: 3.0
+    mpc_offset_weight: 0.20
+    mpc_steering_weight: 0.65
+    mpc_speed_weight: 0.15
+    mpc_overtake_speed: 3.45
+    mpc_follow_speed: 1.20
+    mpc_activation_margin: 0.04
+    mpc_following_gap: 1.95
+    mpc_follow_penalty: 16.0
+    mpc_side_bias_weight: 4.0

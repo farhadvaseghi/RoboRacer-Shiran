@@ -1,0 +1,74 @@
+# =============================================================================
+# EKF configuration — Real hardware mode (Jetson Orin Nano)
+#
+# Three inputs, all pre-processed by adaptive_covariance_node:
+#   imu0  — ZED 2i built-in IMU  (/estimation/imu_adaptive)
+#   odom0 — ZED visual odometry  (/estimation/zed_odom_adaptive)
+#   odom1 — VESC wheel odometry  (/estimation/vesc_odom_adaptive)
+#
+# publish_tf is TRUE; the EKF is the sole odom → base_link TF source on
+# real hardware (the gym is not running).
+# =============================================================================
+
+ekf_filter_node:
+  ros__parameters:
+    frequency: 100.0
+    sensor_timeout: 0.1
+    two_d_mode: true
+    transform_time_offset: 0.0
+    transform_timeout: 0.0
+    print_diagnostics: true
+    debug: false
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    publish_tf: true
+    publish_acceleration: false
+
+    # -------------------------------------------------------------------------
+    # IMU input — ZED 2i built-in IMU via adaptive covariance node
+    # State vector: [x, y, z, roll, pitch, yaw, vx, vy, vz, vroll, vpitch, vyaw, ax, ay, az]
+    # Fuse:          -  -  -   -     -     yaw   -   -   -    -      -      vyaw  ax  -   -
+    # -------------------------------------------------------------------------
+    imu0: /estimation/imu_adaptive
+    imu0_config: [false, false, false,
+                  false, false, true,
+                  false, false, false,
+                  false, false, true,
+                  true,  false, false]
+    imu0_queue_size: 10
+    imu0_differential: false
+    imu0_relative: false
+    # Remove static gravity component from accelerometer readings.
+    imu0_remove_gravitational_acceleration: true
+
+    # -------------------------------------------------------------------------
+    # ZED visual odometry — provides full 2D pose + twist
+    # Fuse: x  y  yaw  vx  vy  vyaw
+    # -------------------------------------------------------------------------
+    odom0: /estimation/zed_odom_adaptive
+    odom0_config: [true,  true,  false,
+                   false, false, true,
+                   true,  true,  false,
+                   false, false, true,
+                   false, false, false]
+    odom0_queue_size: 5
+    odom0_differential: false
+    odom0_relative: false
+
+    # -------------------------------------------------------------------------
+    # VESC wheel odometry — provides forward velocity (vx) and yaw rate (vyaw)
+    # Does NOT provide reliable position; fuse velocity only.
+    # -------------------------------------------------------------------------
+    odom1: /estimation/vesc_odom_adaptive
+    odom1_config: [false, false, false,
+                   false, false, false,
+                   true,  false, false,
+                   false, false, true,
+                   false, false, false]
+    odom1_queue_size: 5
+    odom1_differential: false
+    odom1_relative: false
