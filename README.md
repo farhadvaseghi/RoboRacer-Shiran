@@ -46,10 +46,10 @@ RoboRacer-Shiran is a five-member university project building a **1/10th-scale a
      EKF fusion → Nav2 planning → Pure Pursuit → Ackermann /drive
 ```
 
-- **Estimation** — adaptive-covariance odometry + `robot_localization` EKF, `slam_toolbox` mapping, AMCL localization on the car.
+- **Estimation** — adaptive-covariance odometry + `robot_localization` EKF, `slam_toolbox` mapping and on-car localization (AMCL is also supported).
 - **Planning** — Nav2 with SMAC Hybrid-A\* planner; the route is driven as one continuous `NavigateThroughPoses` goal.
 - **Control** — custom C++ **Pure Pursuit** controller (the Stanley controller was removed); reverse handling, goal-stop, RViz debug markers.
-- **Vision** — ZED depth converted to a `/camera_scan` LaserScan, feeding the Nav2 costmap as a **second obstacle source** alongside LiDAR.
+- **Vision** — ZED depth converted to a `/camera_scan` LaserScan, intended as a **second obstacle source** for the Nav2 costmap alongside LiDAR (implemented; not yet integrated/demonstrated on the car).
 
 <div align="right"><a href="#-table-of-contents">back to top ⬆️</a></div>
 
@@ -63,7 +63,7 @@ RoboRacer-Shiran is a five-member university project building a **1/10th-scale a
 | 🧭 | **Nav2 planning** | SMAC Hybrid-A\* planner + behavior trees, tuned `nav2_params.yaml` for sim and real car |
 | 📊 | **EKF state estimation** | Adaptive covariance on simulator odometry; real-car fusion of ZED IMU/odom + VESC odometry (`ekf_real.yaml`) |
 | 🗺️ | **SLAM mapping** | `slam_toolbox` async mapping — no prior map needed, drive the track once and save |
-| 📷 | **ZED camera costmap** | Depth points → `/camera_scan` → Nav2 obstacle layer: sees obstacles the 2-D LiDAR plane misses |
+| 📷 | **ZED camera costmap** | Depth points → `/camera_scan` → Nav2 obstacle layer, to catch obstacles the 2-D LiDAR plane misses (implemented; not yet integrated/demonstrated on the car) |
 | 🚧 | **Dynamic scenarios** | Patched two-agent simulator with autonomous moving-obstacle vehicle, static obstacle maps, cylinder-wall visualization |
 | 🛑 | **Field-tested tooling** | One-command bring-up, chain healthcheck with per-link reports, rosbag recording, zero-speed `/drive` keepalive for parked localization |
 | 🏟️ | **Real-car runbooks** | Verified SLAM → save map → AMCL → autonomous drive workflow, plus one-script deploy to the car |
@@ -144,7 +144,7 @@ Nav2 (SMAC Hybrid-A*) ──► /plan ──► path_relay_node  │
 | LiDAR | Hokuyo URG, networked at `192.168.0.10:10940` over Ethernet, ~40 Hz `/scan` |
 | Motor controller | VESC over USB serial (`/dev/sensors/vesc`), ~50 Hz wheel odometry |
 | Camera | ZED 2i — depth → `/camera_scan`, visual odometry + IMU for the EKF |
-| Drivetrain | Brushless motor + steering servo, wheelbase 0.25 m |
+| Drivetrain | Brushless motor + steering servo, wheelbase 0.324 m |
 | Input | USB gamepad (Logitech F710-style) for manual driving & SLAM mapping |
 
 <div align="right"><a href="#-table-of-contents">back to top ⬆️</a></div>
