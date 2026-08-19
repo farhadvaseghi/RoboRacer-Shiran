@@ -375,6 +375,18 @@ Each subsystem is developed on its own branch so five people can work in paralle
 
 Five-member project team — package ownership stays separated so each subsystem can be developed and tested independently.
 
+<div align="center">
+
+| Contributor | GitHub | Subsystem |
+|:---:|:---:|---|
+| <img src="https://github.com/sadeghshoushtari.png?size=80" width="60" height="60" alt="M. Shoushtaridehshal"/> | [**@sadeghshoushtari**](https://github.com/sadeghshoushtari) | Perception (LiDAR/camera, AEB) |
+| <img src="https://github.com/farhadvaseghi.png?size=80" width="60" height="60" alt="F. Vaseghi"/> | [**@farhadvaseghi**](https://github.com/farhadvaseghi) | Environmental modelling & dynamic overtaking |
+| <img src="https://github.com/MiladBahariQaragoz.png?size=80" width="60" height="60" alt="M. Bahari Qaragoz"/> | [**@MiladBahariQaragoz**](https://github.com/MiladBahariQaragoz) | Estimation & localization |
+| <img src="https://github.com/kazhalshirvani.png?size=80" width="60" height="60" alt="K. Shirvani"/> | [**@kazhalshirvani**](https://github.com/kazhalshirvani) | Planning & SLAM |
+| <img src="https://github.com/mohammadbrd.png?size=80" width="60" height="60" alt="M. Barabadi"/> | [**@mohammadbrd**](https://github.com/mohammadbrd) | Control |
+
+</div>
+
 ## 📜 License
 
 Distributed under the MIT License — see [`LICENSE`](LICENSE).
