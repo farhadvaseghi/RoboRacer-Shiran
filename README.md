@@ -46,7 +46,7 @@ RoboRacer-Shiran is a five-member university project building a **1/10th-scale a
      EKF fusion → Nav2 planning → Pure Pursuit → Ackermann /drive
 ```
 
-- **Estimation** — adaptive-covariance odometry + `robot_localization` EKF, `slam_toolbox` mapping and on-car localization (AMCL is also supported).
+- **Estimation** — adaptive-covariance odometry + `robot_localization` EKF, `slam_toolbox` mapping; on-car localization via `slam_toolbox` or AMCL (see workflow below).
 - **Planning** — Nav2 with SMAC Hybrid-A\* planner; the route is driven as one continuous `NavigateThroughPoses` goal.
 - **Control** — custom C++ **Pure Pursuit** controller (the Stanley controller was removed); reverse handling, goal-stop, RViz debug markers.
 - **Vision** — ZED depth converted to a `/camera_scan` LaserScan, intended as a **second obstacle source** for the Nav2 costmap alongside LiDAR (implemented; not yet integrated/demonstrated on the car).
